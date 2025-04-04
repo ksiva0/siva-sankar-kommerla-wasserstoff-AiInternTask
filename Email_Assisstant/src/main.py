@@ -1,6 +1,7 @@
 # src/main.py
 import sys
 import os
+import openai
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from services.email_controller import EmailController
