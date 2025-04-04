@@ -1,6 +1,6 @@
 # src/services/email_controller.py
-import openai
 import os
+import openai
 from services.gmail_service import GmailService
 from services.slack_service import SlackService
 from services.calendar_service import CalendarService
