@@ -14,11 +14,8 @@ class EmailController:
         self.calendar_service = CalendarService()
         self.use_mock = use_mock
 
-        if not use_mock:
-            import openai
-            self.openai_api_key = st.secrets["openai"]["OPENAI_API_KEY"]
-            openai.api_key = self.openai_api_key
-            self.openai = openai
+        self.openai_api_key = st.secrets["openai"]["OPENAI_API_KEY"]
+        self.openai_client = OpenAI(api_key=self.openai_api_key)  # ✅ New client initialization
 
     def process_emails(self):
         messages = self.gmail_service.fetch_emails()
@@ -29,16 +26,19 @@ class EmailController:
             prompt = generate_reply_prompt(email_content['snippet'], email_content['data'])
 
             if self.use_mock:
-                reply = "🤖 This is a mocked response to simulate OpenAI output."
+                reply = "🧪 This is a mock reply generated in test mode."
             else:
-                response = self.openai.chat.completions.create(
+                response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=150
                 )
-                reply = response.choices[0].message.content
+                reply = response.choices[0].message.content  # ✅ Updated access syntax
 
             print(f"Generated reply: {reply}")
-
-            self.gmail_service.send_email(email_content['data'].split()[0], "RE: " + email_content['snippet'], reply)
+            self.gmail_service.send_email(
+                email_content['data'].split()[0],
+                "RE: " + email_content['snippet'],
+                reply
+            )
             self.slack_service.send_message('#general', f"Replied to email ID: {msg['id']}")
