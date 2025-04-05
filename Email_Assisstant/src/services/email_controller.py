@@ -5,6 +5,7 @@ from services.gmail_service import GmailService
 from services.slack_service import SlackService
 from services.calendar_service import CalendarService
 from utils.prompt_engineering import generate_reply_prompt
+import streamlit as st
 
 class EmailController:
     def __init__(self, slack_token):
