@@ -1,54 +1,58 @@
 # src/services/gmail_service.py
-import os.path
+
+import os
 import base64
-from google.auth.transport.requests import Request
-from google.oauth2.service_account import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
 import streamlit as st
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import Flow
+from google.auth.transport.requests import Request
+import pickle
 
-
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/userinfo.email']
-REDIRECT_URI = "http://localhost:8501"
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
 
 class GmailService:
     def __init__(self):
-        self.service = self.authenticate_gmail()
+        self.creds = self.authenticate()
+        self.service = build('gmail', 'v1', credentials=self.creds)
 
-    def authenticate_gmail(self):
-        creds = service_account.Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],
-        scopes=SCOPES
+    def authenticate(self):
+        if 'credentials' in st.session_state:
+            return st.session_state['credentials']
+
+        flow = Flow.from_client_secrets_file(
+            'client_secret.json',  # <- you can load this from st.secrets if needed
+            scopes=SCOPES,
+            redirect_uri=st.secrets["redirect_uri"]
         )
-        return build('gmail', 'v1', credentials=creds)
 
-    def fetch_emails(self):
-        results = self.service.users().messages().list(userId='me', maxResults=10).execute()
-        return results.get('messages', [])
+        auth_url, _ = flow.authorization_url(prompt='consent')
+        st.markdown(f"[Authorize Gmail Access]({auth_url})")
+
+        if "code" in st.query_params:
+            flow.fetch_token(code=st.query_params["code"])
+            creds = flow.credentials
+            st.session_state['credentials'] = creds
+            return creds
+
+        st.stop()
+
+    def fetch_emails(self, max_results=10):
+        result = self.service.users().messages().list(userId='me', maxResults=max_results).execute()
+        messages = result.get('messages', [])
+        return messages
 
     def get_email_content(self, msg_id):
-        msg = self.service.users().messages().get(userId='me', id=msg_id).execute()
-        payload = msg.get('payload', {})
-        parts = payload.get('parts', [])
-        body_data = None
-
-        for part in parts:
-            if 'body' in part and 'data' in part['body']:
-                body_data = part['body']['data']
-                break
-
-        msg_str = base64.urlsafe_b64decode(body_data).decode() if body_data else "No content found"
-        return {
-            "id": msg_id,
-            "snippet": msg['snippet'],
-            "data": msg_str
-        }
+        message = self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
+        snippet = message['snippet']
+        data = base64.urlsafe_b64decode(message['payload']['body']['data']).decode('utf-8') if 'data' in message['payload']['body'] else ""
+        return {"snippet": snippet, "data": data}
 
     def send_email(self, to, subject, message_text):
         from email.mime.text import MIMEText
+
         message = MIMEText(message_text)
         message['to'] = to
         message['subject'] = subject
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-        self.service.users().messages().send(userId='me', body={'raw': raw}).execute()
+
+        return self.service.users().messages().send(userId='me', body={'raw': raw}).execute()
