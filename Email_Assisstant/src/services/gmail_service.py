@@ -18,11 +18,22 @@ class GmailService:
         if 'credentials' in st.session_state:
             return st.session_state['credentials']
 
-        flow = Flow.from_client_secrets_file(
-            'client_secret.json',  # <- you can load this from st.secrets if needed
-            scopes=SCOPES,
-            redirect_uri=st.secrets["redirect_uri"]
-        )
+        
+        client_config = {
+        "web": {
+            "client_id": st.secrets["google_oauth"]["client_id"],
+            "client_secret": st.secrets["google_oauth"]["client_secret"],
+            "redirect_uris": [st.secrets["redirect_uri"]],
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token"
+                }
+            }
+
+        flow = Flow.from_client_config(
+                                    client_config,
+                                    scopes=SCOPES,
+                                    redirect_uri=st.secrets["redirect_uri"]
+                                    )
 
         auth_url, _ = flow.authorization_url(prompt='consent')
         st.markdown(f"[Authorize Gmail Access]({auth_url})")
