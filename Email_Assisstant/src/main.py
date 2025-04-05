@@ -22,7 +22,7 @@ def main():
                 st.error("Slack bot token is not set. Please set it in Streamlit secrets or as an environment variable.")
                 return
 
-            email_controller = EmailController(slack_token)
+            email_controller = EmailController(slack_token, use_mock=use_mock)
             email_controller.process_emails()
 
             st.success("✅ Emails processed and sent to Slack!")
