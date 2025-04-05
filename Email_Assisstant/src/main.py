@@ -10,6 +10,8 @@ from services.email_controller import EmailController
 def main():
     st.set_page_config(page_title="Email Assistant", layout="centered")
     st.title("📧 Email Assistant")
+    st.write("🔐 Secrets keys:", st.secrets.keys())
+    st.write("🔐 Google keys:", st.secrets["google_oauth"].keys())
 
     # Ask user to trigger email processing manually
     if st.button("📥 Process Emails Now"):
