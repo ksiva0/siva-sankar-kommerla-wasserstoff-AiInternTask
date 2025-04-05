@@ -15,8 +15,8 @@ class EmailController:
         self.calendar_service = CalendarService()
 
         # Use OpenAI API key from Streamlit secrets
-        self.openai_api_key = st.secrets["openai"]["api_key"]
-        self.client = OpenAI(api_key=self.openai_api_key)
+        self.openai_api_key = st.secrets["openai"]["OPENAI_API_KEY"]
+        self.client = OpenAI(OPENAI_API_KEY=self.openai_api_key)
 
     def process_emails(self):
         messages = self.gmail_service.fetch_emails()
