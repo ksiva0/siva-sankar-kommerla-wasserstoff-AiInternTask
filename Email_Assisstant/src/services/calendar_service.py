@@ -1,8 +1,11 @@
 # src/services/calendar_service.py
+
 import os
 import datetime
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+from google.oauth2 import service_account
+import streamlit as st
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
@@ -11,11 +14,12 @@ class CalendarService:
         self.service = self.authenticate_calendar()
 
     def authenticate_calendar(self):
-        credentials_path = os.environ.get("GOOGLE_CREDENTIALS_PATH", "credentials.json")
-        if not os.path.exists(credentials_path):
-            raise FileNotFoundError("Google Calendar credentials file not found. Ensure the path is correct.")
-        creds = Credentials.from_service_account_file(credentials_path, scopes=SCOPES)
-        return build('calendar', 'v3', credentials=creds)
+        try:
+            calendar_secrets = dict(st.secrets["calendar"])  # Access secrets section
+            creds = service_account.Credentials.from_service_account_info(calendar_secrets, scopes=SCOPES)
+            return build('calendar', 'v3', credentials=creds)
+        except Exception as e:
+            raise RuntimeError(f"Failed to authenticate Google Calendar: {e}")
 
     def create_event(self, summary, start_time, end_time, description="", attendees=[]):
         event = {
