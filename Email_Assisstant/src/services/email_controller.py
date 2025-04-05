@@ -1,4 +1,3 @@
-# src/services/email_controller.py
 import os
 import openai
 from services.gmail_service import GmailService
@@ -15,9 +14,7 @@ class EmailController:
         self.use_mock = use_mock
 
         self.openai_api_key = st.secrets["openai"]["OPENAI_API_KEY"]
-
-        # ✅ New OpenAI client initialization
-        self.openai_client = OpenAI(api_key=self.openai_api_key)
+        self.openai_client = OpenAI(api_key=self.openai_api_key)  # ✅ New client initialization
 
     def process_emails(self):
         messages = self.gmail_service.fetch_emails()
@@ -30,25 +27,8 @@ class EmailController:
             if self.use_mock:
                 reply = "🧪 This is a mock reply generated in test mode."
             else:
-                try:
-                    response = self.openai_client.chat.completions.create(
+                response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=150
-                    )
-                    reply = response.choices[0].message.content
-                except Exception as e:
-                    st.error(f"🚨 OpenAI API Error: {e}")
-                    reply = "⚠️ Failed to generate a reply."
-
-            print(f"Generated reply: {reply}")
-
-            self.gmail_service.send_email(
-                email_content['data'].split()[0],
-                "RE: " + email_content['snippet'],
-                reply
-            )
-            self.slack_service.send_message('#general', f"Replied to email ID: {msg['id']}")
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=150
                 )
