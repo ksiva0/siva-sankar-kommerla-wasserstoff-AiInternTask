@@ -1,3 +1,5 @@
+# src/services/email_controller.py
+
 import os
 import openai
 from openai import OpenAI
