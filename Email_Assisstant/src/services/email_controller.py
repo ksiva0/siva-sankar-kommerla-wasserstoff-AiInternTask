@@ -12,10 +12,7 @@ class EmailController:
         self.slack_service = SlackService(slack_token)
         self.calendar_service = CalendarService()
 
-        self.openai_api_key = os.environ.get("OPENAI_API_KEY")
-        if not self.openai_api_key:
-            raise ValueError("OpenAI API key is missing. Set OPENAI_API_KEY in environment variables.")
-
+        self.openai_api_key = st.secrets["openai"]["OPENAI_API_KEY"]
         openai.api_key = self.openai_api_key
 
     def process_emails(self):
