@@ -11,6 +11,8 @@ def main():
     st.set_page_config(page_title="Email Assistant", layout="centered")
     st.title("📧 Email Assistant")
 
+    use_mock = st.sidebar.checkbox("🔧 Use Mock Mode", value=True)
+
     # Ask user to trigger email processing manually
     if st.button("📥 Process Emails Now"):
         try:
