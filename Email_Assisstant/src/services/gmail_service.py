@@ -12,23 +12,12 @@ REDIRECT_URI = "http://localhost:8501"
 class GmailService:
     def __init__(self):
         self.service = self.authenticate_gmail()
+
     def authenticate_gmail(self):
-        creds = None
-        token_path = 'token.json'
-        credentials_path = os.environ.get("GOOGLE_CREDENTIALS_PATH", "credentials.json")
-
-        if os.path.exists(token_path):
-            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
-                creds = flow.run_local_server(port=0)
-            with open(token_path, 'w') as token:
-                token.write(creds.to_json())
-
+        creds = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=SCOPES
+        )
         return build('gmail', 'v1', credentials=creds)
 
     def fetch_emails(self):
