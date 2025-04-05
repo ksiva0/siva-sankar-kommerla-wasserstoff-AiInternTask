@@ -1,5 +1,6 @@
 import os
 import openai
+from openai import OpenAI
 from services.gmail_service import GmailService
 from services.slack_service import SlackService
 from services.calendar_service import CalendarService
