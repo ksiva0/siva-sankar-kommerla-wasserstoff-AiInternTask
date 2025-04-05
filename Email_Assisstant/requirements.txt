@@ -1,3 +1,4 @@
+streamlit
 OpenAI
 google-auth
 google-auth-oauthlib
