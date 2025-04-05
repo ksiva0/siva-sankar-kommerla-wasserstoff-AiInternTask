@@ -23,11 +23,13 @@ class EmailController:
             print(f"Processing email ID: {msg['id']}")
 
             prompt = generate_reply_prompt(email_content['snippet'], email_content['data'])
-            response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": "Hello"}],
-            max_tokens=150
-        )
+            
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=150
+            )
+            
             reply = response['choices'][0]['message']['content']
             print(f"Generated reply: {reply}")
 
