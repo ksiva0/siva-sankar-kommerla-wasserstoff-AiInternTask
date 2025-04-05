@@ -14,7 +14,7 @@ def main():
     # Ask user to trigger email processing manually
     if st.button("📥 Process Emails Now"):
         try:
-            slack_token = os.environ.get("SLACK_BOT_TOKEN") or st.secrets["slack"]["bot_token"]
+            slack_token = os.environ.get("SLACK_BOT_TOKEN")
 
             if not slack_token:
                 st.error("Slack bot token is not set. Please set it in Streamlit secrets or as an environment variable.")
