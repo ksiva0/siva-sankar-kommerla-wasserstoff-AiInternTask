@@ -32,11 +32,11 @@ class EmailController:
             else:
                 try:
                     response = self.openai_client.chat.completions.create(
-                        model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": prompt}],
-                        max_tokens=150
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=150
                     )
-                    reply = response.choices[0].message.content  # ✅ Correct syntax
+                    reply = response.choices[0].message.content
                 except Exception as e:
                     st.error(f"🚨 OpenAI API Error: {e}")
                     reply = "⚠️ Failed to generate a reply."
