@@ -35,6 +35,9 @@ class GmailService:
                                     redirect_uri=st.secrets["redirect_uri"]
                                     )
 
+        st.write("🔐 Secrets keys:", st.secrets.keys())
+        st.write("🔐 Google keys:", st.secrets["google_oauth"].keys())
+
         auth_url, _ = flow.authorization_url(prompt='consent')
         st.markdown(f"[Authorize Gmail Access]({auth_url})")
 
