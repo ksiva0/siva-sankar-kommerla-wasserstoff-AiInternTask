@@ -22,7 +22,7 @@ class GmailService:
         if 'token.pickle' in os.listdir():
             with open('token.pickle', 'rb') as token:
                 creds = pickle.load(token)
-
+    
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
@@ -36,68 +36,46 @@ class GmailService:
                         "token_uri": st.secrets["google_oauth"].get("token_uri", "https://oauth2.googleapis.com/token")
                     }
                 }
-
+    
                 flow = InstalledAppFlow.from_client_config(
                     client_config,
                     ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
                 )
-                creds = flow.run_local_server(port=0)
-
+                if st.secrets.get("headless_mode", False):# check if headless mode is enabled in streamlit secrets.
+                    authorization_url, state = flow.authorization_url()
+                    st.write(f"Please visit this URL: {authorization_url}")
+                    authorization_response = st.text_input("Enter the authorization response URL:")
+                    if authorization_response:
+                        flow.fetch_token(authorization_response=authorization_response)
+                        creds = flow.credentials
+                else:
+                    creds = flow.run_local_server(port=0)
+    
             with open('token.pickle', 'wb') as token:
                 pickle.dump(creds, token)
-        # Verify credentials using service account info. This is a check, not the main auth.
-        try:
-            credentials_info = {
-                "type": st.secrets["credentials"]["type"],
-                "project_id": st.secrets["credentials"]["project_id"],
-                "private_key_id": st.secrets["credentials"]["private_key_id"],
-                "private_key": st.secrets["credentials"]["private_key"],
-                "client_email": st.secrets["credentials"]["client_email"],
-                "client_id": st.secrets["credentials"]["client_id"],
-                "auth_uri": st.secrets["credentials"]["auth_uri"],
-                "token_uri": st.secrets["credentials"]["token_uri"],
-                "auth_provider_x509_cert_url": st.secrets["credentials"]["auth_provider_x509_cert_url"],
-                "client_x509_cert_url": st.secrets["credentials"]["client_x509_cert_url"],
-                "universe_domain": st.secrets["credentials"]["universe_domain"]
-            }
-
-            service_account_creds = service_account.Credentials.from_service_account_info(
-                credentials_info,
-                scopes=[
-                    'https://www.googleapis.com/auth/gmail.readonly',
-                    'https://www.googleapis.com/auth/gmail.send'
-                ]
-            )
-            #If the code reaches here, then the credentials are valid.
-            self.logger.info("Service Account Credentials are Valid.")
-
-        except Exception as e:
-            self.logger.error(f"Service Account Credentials check failed: {e}")
-            st.error(f"Service Account Credentials check failed: {e}")
-
+    
         self.service = build('gmail', 'v1', credentials=creds)
-
-    def list_messages(self, user_id='me', label_ids=['INBOX'], max_results=10):
-        try:
-            results = self.service.users().messages().list(userId=user_id, labelIds=label_ids, maxResults=max_results).execute()
-            messages = results.get('messages', [])
-            return messages
-        except Exception as e:
-            self.logger.error(f"An error occurred: {e}")
-            st.error(f"An error occurred: {e}")
-            return []
-
-    def get_message(self, message_id, user_id='me', format='full'):
-        if not self.service:
-            st.warning("Gmail service not initialized. Authentication failed.")
-            return None
-        try:
-            message = self.service.users().messages().get(userId=user_id, id=message_id, format=format).execute()
-            return message
-        except Exception as e:
-            st.error(f"An error occurred while getting message: {e}")
-            self.logger.error(f"An error occurred while getting message: {e}")
-            return None
+        def list_messages(self, user_id='me', label_ids=['INBOX'], max_results=10):
+            try:
+                results = self.service.users().messages().list(userId=user_id, labelIds=label_ids, maxResults=max_results).execute()
+                messages = results.get('messages', [])
+                return messages
+            except Exception as e:
+                self.logger.error(f"An error occurred: {e}")
+                st.error(f"An error occurred: {e}")
+                return []
+    
+        def get_message(self, message_id, user_id='me', format='full'):
+            if not self.service:
+                st.warning("Gmail service not initialized. Authentication failed.")
+                return None
+            try:
+                message = self.service.users().messages().get(userId=user_id, id=message_id, format=format).execute()
+                return message
+            except Exception as e:
+                st.error(f"An error occurred while getting message: {e}")
+                self.logger.error(f"An error occurred while getting message: {e}")
+                return None
 
     def get_email_data(self, message):
         headers = message['payload']['headers']
