@@ -10,9 +10,11 @@ import pickle
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
 
 class GmailService:
-    def __init__(self):
-        self.creds = self.authenticate()
-        self.service = build('gmail', 'v1', credentials=self.creds)
+    def __init__(self, use_mock=False):
+        self.use_mock = use_mock
+        if not self.use_mock:
+            self.creds = self.authenticate()
+            self.service = build('gmail', 'v1', credentials=self.creds)
 
     def authenticate(self):
         if 'credentials' in st.session_state:
@@ -47,22 +49,27 @@ class GmailService:
         st.stop()
 
     def fetch_emails(self, max_results=10):
+        if self.use_mock:
+            return [{"id": "mock123"}]  # Simulate one message
         result = self.service.users().messages().list(userId='me', maxResults=max_results).execute()
         messages = result.get('messages', [])
         return messages
 
     def get_email_content(self, msg_id):
+        if self.use_mock:
+            return {"snippet": "Mock Email", "data": "Mock body content for testing"}
         message = self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
         snippet = message['snippet']
         data = base64.urlsafe_b64decode(message['payload']['body']['data']).decode('utf-8') if 'data' in message['payload']['body'] else ""
         return {"snippet": snippet, "data": data}
-
+        
     def send_email(self, to, subject, message_text):
+        if self.use_mock:
+            print(f"📤 Mock email sent to {to} with subject '{subject}'")
+            return
         from email.mime.text import MIMEText
-
         message = MIMEText(message_text)
         message['to'] = to
         message['subject'] = subject
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-
         return self.service.users().messages().send(userId='me', body={'raw': raw}).execute()
