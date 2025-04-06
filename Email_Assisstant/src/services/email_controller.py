@@ -1,9 +1,9 @@
 # src/services/email_controller.py
 
-from src.services.gmail_service import GmailService
-from src.services.slack_service import SlackService
-from src.services.calendar_service import CalendarService
-from src.utils.prompt_engineering import generate_reply_prompt
+from services.gmail_service import GmailService
+from services.slack_service import SlackService
+from services.calendar_service import CalendarService
+from utils.prompt_engineering import generate_reply_prompt
 import openai
 import logging
 
