@@ -35,7 +35,9 @@ logger = logging.getLogger(__name__)
 
 def main():
     st.title("AI Email Assistant")
-    print(f"Redirect URI from secrets: {st.secrets['google_oauth']['redirect_uri']}")
+
+    # Add the debugging line here:
+    logger.info(f"Redirect URI from secrets: {st.secrets['google_oauth']['redirect_uri']}") #Logging change
 
     try:
         email_controller = EmailController()
