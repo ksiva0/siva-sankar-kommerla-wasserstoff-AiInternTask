@@ -23,7 +23,7 @@ class GmailService:
     def _authenticate(self):
         try:
             # Load credentials from Streamlit secrets
-            creds_data = st.secrets["gmail_credentials"]
+            creds_data = st.secrets["credentials"]
 
             creds = Credentials.from_authorized_user_info(
                 info=creds_data,
