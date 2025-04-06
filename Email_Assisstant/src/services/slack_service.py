@@ -1,33 +1,19 @@
 # src/services/slack_service.py
 
-import requests
-import streamlit as st
+from slack_sdk import WebClient
+import logging
 
 class SlackService:
-    def __init__(self, token=None):
-        # Token can be passed or fetched from Streamlit secrets
-        self.token = token or st.secrets["slack"]["SLACK_BOT_TOKEN"]
+    def __init__(self, token):
+        self.logger = logging.getLogger(__name__)
+        self.client = WebClient(token=token)
 
     def send_message(self, channel, text):
-        url = "https://slack.com/api/chat.postMessage"
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "channel": channel,
-            "text": text
-        }
-
         try:
-            response = requests.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            response_data = response.json()
-
-            if not response_data.get("ok"):
-                st.error(f"Slack API Error: {response_data.get('error')}")
-            return response_data
-
+            result = self.client.chat_postMessage(channel=channel, text=text)
+            self.logger.info(f"Slack message sent: {result['ts']}")
+        except Exception as e:
+            self.logger.error(f"Error sending Slack message: {e}")
         except requests.RequestException as e:
             st.error(f"⚠️ Failed to send message to Slack: {e}")
             return {"ok": False, "error": str(e)}
