@@ -44,7 +44,7 @@ class GmailService:
                         client_config = json.dumps(client_config_dict) #convert to json string
                         flow = Flow.from_client_config(
                             json.loads(client_config), #load the json string.
-                            scopes=['https://www.googleapis.com/auth/gmail.readonly'],
+                            scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
                             redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
                         )
                         flow.fetch_token(code=code)
@@ -68,7 +68,7 @@ class GmailService:
                         client_config = json.dumps(client_config_dict) #convert to json
                         flow = Flow.from_client_config(
                             json.loads(client_config), #load json string
-                            scopes=['https://www.googleapis.com/auth/gmail.readonly'],
+                            scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
                             redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
                         )
                         authorization_url, state = flow.authorization_url(
