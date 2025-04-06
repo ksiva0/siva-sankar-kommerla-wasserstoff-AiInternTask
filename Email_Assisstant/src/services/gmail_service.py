@@ -28,7 +28,7 @@ class GmailService:
                 creds.refresh(Request())
             else:
                 redirect_uri = st.secrets["google_oauth"]["redirect_uri"]
-                self.logger.info(f"Using redirect URI: {redirect_uri}") # Logging change.
+                self.logger.info(f"Using redirect URI: {redirect_uri}")  # Logging change.
                 client_config = {
                     "web": {
                         "client_id": st.secrets["google_oauth"]["client_id"],
@@ -56,6 +56,7 @@ class GmailService:
                     authorization_response = st.text_input("Enter the authorization response URL:")
                     if authorization_response:
                         try:
+                            self.logger.debug(f"Authorization Response: {authorization_response}")  # ADD THIS LINE
                             flow.fetch_token(authorization_response=authorization_response)
                             creds = flow.credentials
                         except Exception as fetch_error:
