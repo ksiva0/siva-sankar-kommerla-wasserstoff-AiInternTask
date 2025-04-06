@@ -10,6 +10,7 @@ import logging
 import streamlit as st
 from google_auth_oauthlib.flow import Flow
 import json  # Import the json module
+import sys
 
 class GmailService:
     def __init__(self, credentials):
@@ -19,6 +20,22 @@ class GmailService:
             self.service = build('gmail', 'v1', credentials=self.creds)
         else:
             self.service = None
+
+    def _load_client_config(self):
+        """
+        Helper function to load client config, ensuring it's a dictionary.
+        """
+        try:
+            config = st.secrets.get("google_oauth")
+            if isinstance(config, str):
+                config = json.loads(config)  # Parse if it's a string
+            if not isinstance(config, dict):
+                raise ValueError("google_oauth secret is not a dictionary or valid JSON string.")
+            return config
+        except Exception as e:
+            self.logger.error(f"Error loading google_oauth secret: {e}")
+            st.error(f"Error loading google_oauth secret. Please check your Streamlit Secrets configuration.  The expected format is a JSON dictionary.  Error: {e}")
+            sys.exit(1)  # Stop the app if the secret is invalid.
 
     def _authenticate(self):
         creds = None
@@ -32,44 +49,27 @@ class GmailService:
                 code = st.query_params.get("code")
                 if code:
                     try:
-                        client_config_dict = {
-                            "web": {
-                                "client_id": st.secrets["google_oauth"]["client_id"],
-                                "client_secret": st.secrets["google_oauth"]["client_secret"],
-                                "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
-                                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                                "token_uri": "https://oauth2.googleapis.com/token"
-                            }
-                        }
-                        client_config = json.dumps(client_config_dict) #convert to json string
+                        client_config = self._load_client_config()  # Use helper function
                         flow = Flow.from_client_config(
-                            json.loads(client_config), #load the json string.
+                            client_config,
                             scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
-                            redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
+                            redirect_uri=client_config["web"]["redirect_uris"][0], #get redirect URI from config
                         )
                         flow.fetch_token(code=code)
                         creds = flow.credentials
                         st.session_state['token'] = creds.to_json()
                         st.query_params.clear()
                     except Exception as e:
+                        self.logger.error(f"Error authenticating: {e}")
                         st.error(f"Error authenticating: {e}")
                         return None
                 else:
                     try:
-                        client_config_dict = {
-                            "web": {
-                                "client_id": st.secrets["google_oauth"]["client_id"],
-                                "client_secret": st.secrets["google_oauth"]["client_secret"],
-                                "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
-                                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                                "token_uri": "https://oauth2.googleapis.com/token"
-                            }
-                        }
-                        client_config = json.dumps(client_config_dict) #convert to json
+                        client_config = self._load_client_config() # Use helper
                         flow = Flow.from_client_config(
-                            json.loads(client_config), #load json string
+                            client_config,
                             scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
-                            redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
+                            redirect_uri=client_config["web"]["redirect_uris"][0], #get redirect URI from config
                         )
                         authorization_url, state = flow.authorization_url(
                             access_type='offline',
@@ -78,6 +78,7 @@ class GmailService:
                         st.markdown(f'<a href="{authorization_url}">Authorize</a>', unsafe_allow_html=True)
                         return None
                     except Exception as e:
+                        self.logger.error(f"Error generating auth url: {e}")
                         st.error(f"Error generating auth url: {e}")
                         return None
         return creds
