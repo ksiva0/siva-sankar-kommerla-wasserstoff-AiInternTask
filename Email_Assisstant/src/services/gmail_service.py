@@ -17,7 +17,7 @@ class GmailService:
         self.service = None
 
         if self.use_mock:
-            return  # Skip Gmail API setup in mock mode
+            return  # Skip real Gmail setup in mock mode
 
         creds = None
         if os.path.exists('token.pickle'):
@@ -31,7 +31,6 @@ class GmailService:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     'credentials.json', SCOPES)
                 creds = flow.run_local_server(port=0)
-
             with open('token.pickle', 'wb') as token:
                 pickle.dump(creds, token)
 
@@ -41,14 +40,30 @@ class GmailService:
         if self.use_mock:
             return [{"id": "mock1"}, {"id": "mock2"}]
 
+        if not self.service:
+            raise RuntimeError("Gmail service not initialized")
+
         results = self.service.users().messages().list(
             userId='me',
             maxResults=max_results,
-            q=""  # fetches all, not only unread
+            q=""  # Fetch all
         ).execute()
         return results.get('messages', [])
 
     def get_email_content(self, msg_id):
+        if self.use_mock:
+            return {
+                "from": "mock@example.com",
+                "to": "you@example.com",
+                "subject": "Test Subject",
+                "snippet": "Snippet here",
+                "data": "Body text of the email.",
+                "timestamp": 1712390400,
+            }
+
+        if not self.service:
+            raise RuntimeError("Gmail service not initialized")
+
         message = self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
         headers = message['payload'].get('headers', [])
         header_dict = {h['name']: h['value'] for h in headers}
@@ -76,6 +91,9 @@ class GmailService:
         if self.use_mock:
             print(f"📤 Mock email sent to {to} with subject '{subject}'")
             return
+
+        if not self.service:
+            raise RuntimeError("Gmail service not initialized")
 
         message = MIMEText(message_text)
         message['to'] = to
