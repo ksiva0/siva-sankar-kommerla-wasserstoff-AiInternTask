@@ -25,35 +25,40 @@ class GmailService:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                code = st.experimental_get_query_params().get("code")
+                code = st.query_params.get("code")
                 if code:
                     try:
                         import google.auth.transport.requests
-                        from google_auth_oauthlib.flow import Flow
+                        from google_auth_oauthlib.flow import Flow #import here
                         flow = Flow.from_client_config(
                             st.secrets["google_oauth"],
                             scopes=['https://www.googleapis.com/auth/gmail.readonly'],
                             redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
                         )
-                        flow.fetch_token(code=code[0])
+                        flow.fetch_token(code=code) #code is already a list like object when using st.query_params
                         creds = flow.credentials
                         st.session_state['token'] = creds.to_json() # store token in session state.
-                        st.experimental_set_query_params() #clear query parameters
+                        st.query_params.clear() #clear query parameters
                     except Exception as e:
                         st.error(f"Error authenticating: {e}")
                         return None
                 else:
-                    flow = Flow.from_client_config(
-                        st.secrets["google_oauth"],
-                        scopes=['https://www.googleapis.com/auth/gmail.readonly'],
-                        redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
-                    )
-                    authorization_url, state = flow.authorization_url(
-                        access_type='offline',
-                        include_granted_scopes='true'
-                    )
-                    st.markdown(f'<a href="{authorization_url}">Authorize</a>', unsafe_allow_html=True)
-                    return None
+                    try:
+                        import google_auth_oauthlib.flow #import here
+                        flow = google_auth_oauthlib.flow.Flow.from_client_config(
+                            st.secrets["google_oauth"],
+                            scopes=['https://www.googleapis.com/auth/gmail.readonly'],
+                            redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
+                        )
+                        authorization_url, state = flow.authorization_url(
+                            access_type='offline',
+                            include_granted_scopes='true'
+                        )
+                        st.markdown(f'<a href="{authorization_url}">Authorize</a>', unsafe_allow_html=True)
+                        return None
+                    except Exception as e:
+                        st.error(f"Error generating auth url: {e}")
+                        return None
         return creds
 
     def get_emails(self, num_emails=5):
