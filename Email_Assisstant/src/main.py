@@ -4,6 +4,7 @@ import os
 import sys
 import streamlit as st
 import time
+from streamlit_autorefresh import st_autorefresh
 
 # Add the parent directory to sys.path to import services
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -28,17 +29,18 @@ def main():
     # Instantiate controller
     email_controller = EmailController(slack_token, use_mock=use_mock)
 
+    # Auto-run background every 60 seconds
+    if auto_mode:
+        # This causes the app to rerun every 60 seconds
+        st_autorefresh(interval=60000, limit=None, key="email_autorefresh")
+        st.info("⏱️ Auto-run mode is ON. This page refreshes every 60 seconds to process emails.")
+        email_controller.process_emails()
+        st.success("✅ Auto-processed emails and replies sent!")
+
     # Manual trigger
     if st.button("📥 Process Emails Now"):
         email_controller.process_emails()
         st.success("✅ Emails processed and replies sent!")
-
-    # Auto-run background every 60 seconds
-    if auto_mode:
-        st.info("⏱️ Auto-run mode is ON. This page will refresh every 60 seconds to process emails.")
-        email_controller.process_emails()
-        time.sleep(60)
-        st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
