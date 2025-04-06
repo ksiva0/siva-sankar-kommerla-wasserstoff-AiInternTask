@@ -4,10 +4,11 @@ import os
 import pickle
 import streamlit as st
 from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from google.auth.exceptions import RefreshError
 import base64
+import email
 from email.mime.text import MIMEText
 import logging
 
@@ -18,34 +19,6 @@ class GmailService:
         self.authenticate()
 
     def authenticate(self):
-        creds = None
-        if 'token.pickle' in os.listdir():
-            with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
-
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                client_config = {
-                    "web": {
-                        "client_id": st.secrets["google_oauth"]["client_id"],
-                        "client_secret": st.secrets["google_oauth"]["client_secret"],
-                        "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
-                        "auth_uri": st.secrets["google_oauth"].get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
-                        "token_uri": st.secrets["google_oauth"].get("token_uri", "https://oauth2.googleapis.com/token")
-                    }
-                }
-
-                flow = InstalledAppFlow.from_client_config(
-                    client_config,
-                    ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
-                )
-                creds = flow.run_local_server(port=0)
-
-            with open('token.pickle', 'wb') as token:
-                pickle.dump(creds, token)
-        # Verify credentials using service account info. This is a check, not the main auth.
         try:
             credentials_info = {
                 "type": st.secrets["credentials"]["type"],
@@ -61,30 +34,95 @@ class GmailService:
                 "universe_domain": st.secrets["credentials"]["universe_domain"]
             }
 
-            service_account_creds = service_account.Credentials.from_service_account_info(
+            creds = service_account.Credentials.from_service_account_info(
                 credentials_info,
                 scopes=[
                     'https://www.googleapis.com/auth/gmail.readonly',
                     'https://www.googleapis.com/auth/gmail.send'
                 ]
             )
-            #If the code reaches here, then the credentials are valid.
-            self.logger.info("Service Account Credentials are Valid.")
+
+            self.service = build('gmail', 'v1', credentials=creds)
+            st.session_state["gmail_authenticated"] = True
+            self.logger.info("Gmail service authenticated.")
 
         except Exception as e:
-            self.logger.error(f"Service Account Credentials check failed: {e}")
-            st.error(f"Service Account Credentials check failed: {e}")
-
-        self.service = build('gmail', 'v1', credentials=creds)
+            st.error(f"Gmail service authentication failed: {e}")
+            self.logger.error(f"Gmail service authentication failed: {e}")
+            self.service = None
 
     def list_messages(self, user_id='me', label_ids=['INBOX'], max_results=10):
-        try:
-            results = self.service.users().messages().list(userId=user_id, labelIds=label_ids, maxResults=max_results).execute()
-            messages = results.get('messages', [])
-            return messages
-        except Exception as e:
-            self.logger.error(f"An error occurred: {e}")
-            st.error(f"An error occurred: {e}")
+        if not self.service:
+            st.warning("Gmail service not initialized. Authentication failed.")
             return []
 
-    # ... (rest of the code remains the same)
+        try:
+            response = self.service.users().messages().list(
+                userId=user_id,
+                labelIds=label_ids,
+                maxResults=max_results
+            ).execute()
+
+            messages = response.get('messages', [])
+            return messages
+
+        except Exception as e:
+            st.error(f"An error occurred while fetching messages: {e}")
+            self.logger.error(f"An error occurred while fetching messages: {e}")
+            return []
+
+    def get_message(self, message_id, user_id='me', format='full'):
+        if not self.service:
+            st.warning("Gmail service not initialized. Authentication failed.")
+            return None
+        try:
+            message = self.service.users().messages().get(userId=user_id, id=message_id, format=format).execute()
+            return message
+        except Exception as e:
+            st.error(f"An error occurred while getting message: {e}")
+            self.logger.error(f"An error occurred while getting message: {e}")
+            return None
+
+    def get_email_data(self, message):
+        headers = message['payload']['headers']
+        sender = next((header['value'] for header in headers if header['name'] == 'From'), None)
+        subject = next((header['value'] for header in headers if header['name'] == 'Subject'), None)
+        date = next((header['value'] for header in headers if header['name'] == 'Date'), None)
+
+        body = self.get_email_body(message['payload'])
+
+        return {
+            'sender': sender,
+            'subject': subject,
+            'date': date,
+            'body': body
+        }
+
+    def get_email_body(self, payload):
+        if 'parts' in payload:
+            parts = payload['parts']
+            text_parts = [self.get_email_body(part) for part in parts if part['mimeType'] == 'text/plain']
+            html_parts = [self.get_email_body(part) for part in parts if part['mimeType'] == 'text/html']
+            return '\n'.join(text_parts) or '\n'.join(html_parts)
+        elif 'data' in payload:
+            return base64.urlsafe_b64decode(payload['data'].encode('ascii')).decode('utf-8', errors='ignore')
+        return ''
+
+    def send_message(self, user_id='me', message_body='', to='', subject=''):
+        if not self.service:
+            st.warning("Gmail service not initialized. Authentication failed.")
+            return
+
+        try:
+            message = MIMEText(message_body)
+            message['to'] = to
+            message['subject'] = subject
+            raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+            send_message = self.service.users().messages().send(userId=user_id, body={'raw': raw_message}).execute()
+            self.logger.info(f"Email sent: {send_message['id']}")
+            return send_message
+        except Exception as e:
+            st.error(f"An error occurred while sending message: {e}")
+            self.logger.error(f"An error occurred while sending message: {e}")
+            return None
