@@ -26,11 +26,15 @@ class GmailService:
         Helper function to load client config, ensuring it's a dictionary.
         """
         try:
-            config = st.secrets.get("google_oauth")
-            if not isinstance(config, dict):
-                config = dict(config)  # Convert AttrDict to a standard dict
-            if not isinstance(config, dict):
-                raise ValueError(f"google_oauth secret is not a dictionary. Found type: {type(config)}")
+            config = {
+                "web": {
+                    "client_id": st.secrets["google_oauth"]["client_id"],
+                    "client_secret": st.secrets["google_oauth"]["client_secret"],
+                    "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",  # Correct auth_uri
+                    "token_uri": "https://oauth2.googleapis.com/token"    # Correct token_uri
+                }
+            }
             return config
         except Exception as e:
             self.logger.error(f"Error loading google_oauth secret: {e}")
@@ -53,7 +57,7 @@ class GmailService:
                         flow = Flow.from_client_config(
                             client_config,
                             scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
-                            redirect_uri=client_config["web"]["redirect_uris"][0], #get redirect URI from config
+                            redirect_uri=client_config["web"]["redirect_uris"][0],
                         )
                         flow.fetch_token(code=code)
                         creds = flow.credentials
@@ -65,11 +69,11 @@ class GmailService:
                         return None
                 else:
                     try:
-                        client_config = self._load_client_config() # Use helper
+                        client_config = self._load_client_config()  # Use helper
                         flow = Flow.from_client_config(
                             client_config,
                             scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
-                            redirect_uri=client_config["web"]["redirect_uris"][0], #get redirect URI from config
+                            redirect_uri=client_config["web"]["redirect_uris"][0],
                         )
                         authorization_url, state = flow.authorization_url(
                             access_type='offline',
