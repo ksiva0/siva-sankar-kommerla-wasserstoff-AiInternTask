@@ -11,75 +11,31 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googlea
 
 class GmailService:
     def __init__(self, use_mock=False):
-        self.use_mock = use_mock
-        self.gmail_service = GmailService(use_mock=use_mock)
-        self.creds = self.authenticate()
-        self.service = build('gmail', 'v1', credentials=self.creds)
+        ...
 
-    def authenticate(self):
-        if 'credentials' in st.session_state:
-            return st.session_state['credentials']
+    def get_email_content(self, msg_id):
+        message = self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
+        headers = message['payload'].get('headers', [])
+        header_dict = {h['name']: h['value'] for h in headers}
 
-        
-        client_config = {
-        "web": {
-            "client_id": st.secrets["google_oauth"]["client_id"],
-            "client_secret": st.secrets["google_oauth"]["client_secret"],
-            "redirect_uri": [st.secrets["google_oauth"]["redirect_uri"]],
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token"
-                }
-            }
+        snippet = message.get('snippet', '')
+        body = ''
+        if 'parts' in message['payload']:
+            for part in message['payload']['parts']:
+                if part['mimeType'] == 'text/plain' and 'data' in part['body']:
+                    body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8')
+                    break
+        elif 'body' in message['payload'] and 'data' in message['payload']['body']:
+            body = base64.urlsafe_b64decode(message['payload']['body']['data']).decode('utf-8')
 
-        flow = Flow.from_client_config(
-                                    client_config,
-                                    scopes=SCOPES,
-                                    redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
-                                    )
-
-        auth_url, _ = flow.authorization_url(prompt='consent')
-        st.markdown(f"[Authorize Gmail Access]({auth_url})")
-
-        if "code" in st.query_params:
-            flow.fetch_token(code=st.query_params["code"])
-            creds = flow.credentials
-            st.session_state['credentials'] = creds
-            return creds
-
-        st.stop()
-
-    def fetch_emails(self, max_results=10):
-        # Fetch all messages (not just unread)
-        result = self.service.users().messages().list(
-            userId='me', maxResults=max_results, q=""
-        ).execute()
-        messages = result.get('messages', [])
-        return messages
-
-        def get_email_content(self, msg_id):
-            message = self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
-            headers = message['payload'].get('headers', [])
-            header_dict = {h['name']: h['value'] for h in headers}
-            
-            snippet = message.get('snippet', '')
-            body = ''
-            if 'parts' in message['payload']:
-                for part in message['payload']['parts']:
-                    if part['mimeType'] == 'text/plain' and 'data' in part['body']:
-                        body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8')
-                        break
-            elif 'body' in message['payload'] and 'data' in message['payload']['body']:
-                body = base64.urlsafe_b64decode(message['payload']['body']['data']).decode('utf-8')
-    
-            return {
-                "from": header_dict.get("From"),
-                "to": header_dict.get("To"),
-                "subject": header_dict.get("Subject"),
-                "snippet": snippet,
-                "data": body,
-                "timestamp": int(message.get("internalDate", 0)) / 1000
-            }
-
+        return {
+            "from": header_dict.get("From"),
+            "to": header_dict.get("To"),
+            "subject": header_dict.get("Subject"),
+            "snippet": snippet,
+            "data": body,
+            "timestamp": int(message.get("internalDate", 0)) / 1000
+        }
         
     def send_email(self, to, subject, message_text):
         if self.use_mock:
