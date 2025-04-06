@@ -1,7 +1,7 @@
 # src/main.py
 
 import streamlit as st
-from src.services.email_controller import EmailController
+from services.email_controller import EmailController
 from dotenv import load_dotenv
 import os
 
