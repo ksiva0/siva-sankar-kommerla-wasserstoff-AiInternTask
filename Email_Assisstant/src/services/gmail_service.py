@@ -32,7 +32,7 @@ class GmailService:
             return config
         except Exception as e:
             self.logger.error(f"Error loading google_oauth secret: {e}")
-            st.error(f"Error loading google_oauth secret. Please check your Streamlit Secrets configuration.  The expected format is a JSON dictionary.  Error: {e}")
+            st.error(f"Error loading google_oauth secret. Please check your Streamlit Secrets configuration. The expected format is a JSON dictionary. Error: {e}")
             sys.exit(1)  # Stop the app if the secret is invalid.
 
     def _authenticate(self):
