@@ -26,15 +26,9 @@ class GmailService:
         Helper function to load client config, ensuring it's a dictionary.
         """
         try:
-            config = {
-                "web": {
-                    "client_id": st.secrets["google_oauth"]["client_id"],
-                    "client_secret": st.secrets["google_oauth"]["client_secret"],
-                    "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token"
-                }
-            }
+            config = st.secrets.get("google_oauth")
+            if not isinstance(config, dict):
+                raise ValueError(f"google_oauth secret is not a dictionary. Found type: {type(config)}")
             return config
         except Exception as e:
             self.logger.error(f"Error loading google_oauth secret: {e}")
