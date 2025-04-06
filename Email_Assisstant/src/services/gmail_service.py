@@ -55,13 +55,30 @@ class GmailService:
         messages = result.get('messages', [])
         return messages
 
-    def get_email_content(self, msg_id):
-        if self.use_mock:
-            return {"snippet": "Mock Email", "data": "Mock body content for testing"}
-        message = self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
-        snippet = message['snippet']
-        data = base64.urlsafe_b64decode(message['payload']['body']['data']).decode('utf-8') if 'data' in message['payload']['body'] else ""
-        return {"snippet": snippet, "data": data}
+        def get_email_content(self, msg_id):
+            message = self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
+            headers = message['payload'].get('headers', [])
+            header_dict = {h['name']: h['value'] for h in headers}
+            
+            snippet = message.get('snippet', '')
+            body = ''
+            if 'parts' in message['payload']:
+                for part in message['payload']['parts']:
+                    if part['mimeType'] == 'text/plain' and 'data' in part['body']:
+                        body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8')
+                        break
+            elif 'body' in message['payload'] and 'data' in message['payload']['body']:
+                body = base64.urlsafe_b64decode(message['payload']['body']['data']).decode('utf-8')
+    
+            return {
+                "from": header_dict.get("From"),
+                "to": header_dict.get("To"),
+                "subject": header_dict.get("Subject"),
+                "snippet": snippet,
+                "data": body,
+                "timestamp": int(message.get("internalDate", 0)) / 1000
+            }
+
         
     def send_email(self, to, subject, message_text):
         if self.use_mock:
