@@ -18,6 +18,7 @@ class EmailController:
         self.calendar_service = CalendarService()
         self.openai_api_key = st.secrets["openai"]["OPENAI_API_KEY"]
         self.openai_client = OpenAI(api_key=self.openai_api_key)
+        self.db = DatabaseService()
 
     def process_emails(self):
         messages = self.gmail_service.fetch_emails()
