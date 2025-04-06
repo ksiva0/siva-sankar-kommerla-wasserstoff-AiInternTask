@@ -9,42 +9,42 @@ from google.auth.transport.requests import Request
 import logging
 import streamlit as st
 from google_auth_oauthlib.flow import Flow
-import json  # Import the json module
+import json
 import sys
 
 class GmailService:
-    def __init__(self, credentials):
+    def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.creds = self._authenticate()
-        if self.creds:  # only build if auth was successful.
+        if self.creds:
             self.service = build('gmail', 'v1', credentials=self.creds)
         else:
             self.service = None
 
     def _load_client_config(self):
-        """
-        Helper function to load client config, ensuring it's a dictionary.
-        """
         try:
             config = {
                 "web": {
                     "client_id": st.secrets["google_oauth"]["client_id"],
                     "client_secret": st.secrets["google_oauth"]["client_secret"],
                     "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token"
+                    "auth_uri": st.secrets["google_oauth"].get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
+                    "token_uri": st.secrets["google_oauth"].get("token_uri", "https://oauth2.googleapis.com/token")
                 }
             }
             return config
         except Exception as e:
             self.logger.error(f"Error loading google_oauth secret: {e}")
-            st.error(f"Error loading google_oauth secret. Please check your Streamlit Secrets configuration. The expected format is a JSON dictionary. Error: {e}")
-            sys.exit(1)  # Stop the app if the secret is invalid.
+            st.error("Error loading google_oauth secret. Please check your Streamlit Secrets configuration. Expected keys: client_id, client_secret, redirect_uri, auth_uri, token_uri.")
+            sys.exit(1)
 
     def _authenticate(self):
         creds = None
         if 'token' in st.session_state:
-            creds = Credentials.from_authorized_user_info(st.session_state['token'])
+            try:
+                creds = Credentials.from_authorized_user_info(json.loads(st.session_state['token']))
+            except Exception as e:
+                self.logger.error(f"Error loading credentials from session state: {e}")
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
@@ -53,7 +53,7 @@ class GmailService:
                 code = st.query_params.get("code")
                 if code:
                     try:
-                        client_config = self._load_client_config()  # Use helper function
+                        client_config = self._load_client_config()
                         flow = Flow.from_client_config(
                             client_config,
                             scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
@@ -69,7 +69,7 @@ class GmailService:
                         return None
                 else:
                     try:
-                        client_config = self._load_client_config()  # Use helper
+                        client_config = self._load_client_config()
                         flow = Flow.from_client_config(
                             client_config,
                             scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
