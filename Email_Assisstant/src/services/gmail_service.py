@@ -12,11 +12,13 @@ from typing import List, Dict, Optional
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
 
 class GmailService:
-    def __init__(self, use_mock: bool = False):
+    def __init__(self, use_mock=False):
         self.use_mock = use_mock
         self.service = None
         if not self.use_mock:
             self.service = self._authenticate()
+            if self.service is None:
+                logging.error("❌ Gmail service not initialized. Please check your credentials.")
 
     def _authenticate(self):
         try:
