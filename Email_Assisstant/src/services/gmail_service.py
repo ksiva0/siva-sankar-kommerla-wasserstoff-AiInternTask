@@ -28,6 +28,8 @@ class GmailService:
         try:
             config = st.secrets.get("google_oauth")
             if not isinstance(config, dict):
+                config = dict(config)  # Convert AttrDict to a standard dict
+            if not isinstance(config, dict):
                 raise ValueError(f"google_oauth secret is not a dictionary. Found type: {type(config)}")
             return config
         except Exception as e:
