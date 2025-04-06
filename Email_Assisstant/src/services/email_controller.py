@@ -56,11 +56,18 @@ class EmailController:
             print(f"🧠 Generated reply: {reply}")
 
             # Send reply if valid
+            print(f"📧 Attempting to send email to: {sender}")
+            print(f"From: {recipient}, Subject: {subject}, Generated Reply: {reply}")
+            
             if recipient and sender and "@" in sender:
-                self.gmail_service.send_email(sender, f"RE: {subject}", reply)
-                self.slack_service.send_message('#general', f"📬 Replied to email from {sender}: {subject}")
+                try:
+                    self.gmail_service.send_email(sender, f"RE: {subject}", reply)
+                    print("✅ Email sent successfully.")
+                except Exception as e:
+                    print(f"❌ Failed to send email: {e}")
             else:
-                print(f"⚠️ Skipping send due to invalid email address for ID {msg_id}")
+                print(f"⚠️ Skipping send due to invalid email fields. Sender: {sender}, Recipient: {recipient}")
+
 
             # Mark as processed
             self.db.mark_email_as_processed(msg_id)
