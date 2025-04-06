@@ -31,8 +31,8 @@ class GmailService:
                     "client_id": st.secrets["google_oauth"]["client_id"],
                     "client_secret": st.secrets["google_oauth"]["client_secret"],
                     "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",  # Correct auth_uri
-                    "token_uri": "https://oauth2.googleapis.com/token"    # Correct token_uri
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token"
                 }
             }
             return config
