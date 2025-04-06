@@ -30,6 +30,14 @@ class EmailController:
             body = email_content.get("data", "")
             timestamp = email_content.get("timestamp", datetime.utcnow())
 
+            if self.db.is_email_processed(msg['id']):  # ⛔ Skip if already replied
+                continue
+    
+            email_content = self.gmail_service.get_email_content(msg['id'])
+            # ... same logic ...
+            self.gmail_service.send_email(...)
+            self.db.mark_email_as_processed(msg['id'])
+
             # Store in DB
             self.db.save_email(msg['id'], sender, recipient, subject, timestamp, body)
 
