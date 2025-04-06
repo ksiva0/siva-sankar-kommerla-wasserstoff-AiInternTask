@@ -11,14 +11,4 @@ class CalendarService:
         print(f"Creating calendar event: {event_details}")
         self.logger.info(f"Calendar event created: {event_details}")
         # In a real implementation, you'd use the Google Calendar API here
-        # to create the event.
-        # For example:
-        # try:
-        #     service = build('calendar', 'v3', credentials=creds)
-        #     event = service.events().insert(calendarId='primary', body=event_details).execute()
-        #     self.logger.info(f"Calendar event created: {event['htmlLink']}")
-        #     return event
-        # except Exception as e:
-        #     self.logger.error(f"Error creating calendar event: {e}")
-        #     return None
         return None
