@@ -35,17 +35,10 @@ def main():
 
     # Auto-run background every 60 seconds
     if auto_mode:
-        st.info("⏱️ Auto-reply mode is ON. This page checks for emails every 60 seconds.")
-
-        # Track last run time to avoid constant reruns
-        if 'last_run' not in st.session_state:
-            st.session_state['last_run'] = 0
-
-        # Check if 60 seconds have passed since last run
-        if time.time() - st.session_state['last_run'] > 60:
-            email_controller.process_emails()
-            st.session_state['last_run'] = time.time()
-            st.experimental_rerun()  # reruns the script to check again
+        st.info("⏱️ Auto-run mode is ON. This page will refresh every 60 seconds to process emails.")
+        email_controller.process_emails()
+        time.sleep(60)
+        st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
