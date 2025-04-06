@@ -13,7 +13,7 @@ import json
 import sys
 
 class GmailService:
-    def __init__(self):
+    def __init__(self, credentials=None):
         self.logger = logging.getLogger(__name__)
         self.creds = self._authenticate()
         if self.creds:
