@@ -1,5 +1,3 @@
-# src/main.py
-
 import os
 import sys
 import streamlit as st
@@ -12,35 +10,43 @@ from services.email_controller import EmailController
 
 def main():
     st.set_page_config(page_title="Email Assistant", layout="centered")
-    st.title("📧 Email Assistant")
+    st.title("📧 AI Email Assistant")
 
-    # Toggle for mock mode
+    # Sidebar options
+    st.sidebar.header("Settings")
     use_mock = st.sidebar.checkbox("🔧 Use Mock Mode", value=False)
-
-    # Toggle for auto-run mode
     auto_mode = st.sidebar.checkbox("⏱️ Auto-reply every 60 seconds", value=False)
 
     # Load Slack token
-    slack_token = os.environ.get("SLACK_BOT_TOKEN") or st.secrets["slack"]["SLACK_BOT_TOKEN"]
+    slack_token = st.secrets.get("slack", {}).get("SLACK_BOT_TOKEN")
     if not slack_token:
-        st.error("❌ Slack bot token is missing. Please set it in Streamlit secrets or as an environment variable.")
+        st.error("❌ Slack bot token is missing. Please add it to your Streamlit secrets.")
         return
 
-    # Instantiate controller
-    email_controller = EmailController(slack_token, use_mock=use_mock)
+    # Initialize the email controller
+    try:
+        email_controller = EmailController(slack_token, use_mock=use_mock)
+    except Exception as e:
+        st.error(f"❌ Failed to initialize Email Controller: {e}")
+        return
 
-    # Auto-run background every 60 seconds
+    # Auto mode: refresh every 60 seconds
     if auto_mode:
-        # This causes the app to rerun every 60 seconds
         st_autorefresh(interval=60000, limit=None, key="email_autorefresh")
-        st.info("⏱️ Auto-run mode is ON. This page refreshes every 60 seconds to process emails.")
-        email_controller.process_emails()
-        st.success("✅ Auto-processed emails and replies sent!")
+        st.info("⏱️ Auto-run is enabled. This page refreshes every 60 seconds.")
+        try:
+            email_controller.process_emails()
+            st.success("✅ Emails auto-processed and replies sent!")
+        except Exception as e:
+            st.error(f"❌ Auto-processing failed: {e}")
 
     # Manual trigger
     if st.button("📥 Process Emails Now"):
-        email_controller.process_emails()
-        st.success("✅ Emails processed and replies sent!")
+        try:
+            email_controller.process_emails()
+            st.success("✅ Emails processed and replies sent!")
+        except Exception as e:
+            st.error(f"❌ Manual processing failed: {e}")
 
 if __name__ == "__main__":
     main()
