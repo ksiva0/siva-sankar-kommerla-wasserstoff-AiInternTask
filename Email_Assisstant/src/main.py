@@ -37,12 +37,7 @@ def main():
     st.title("AI Email Assistant")
 
     try:
-        user_email = st.text_input("Enter the user email to access:", key="user_email")
-        if not user_email:
-            st.warning("Please enter a user email.")
-            return
-
-        email_controller = EmailController(user_email=user_email)
+        email_controller = EmailController()
     except Exception as e:
         st.error(f"Error initializing services: {e}")
         logger.error(f"Error initializing services: {e}")
