@@ -9,9 +9,14 @@ from googleapiclient.discovery import build
 from google.auth.exceptions import RefreshError
 
 class GmailService:
-    def __init__(self):
+    def __init__(self, mock=False):
         self.service = None
+        self.mock = mock
         self.authenticate()
+
+    @classmethod
+    def init(cls, mock=False):
+        return cls(mock=mock)
 
     def authenticate(self):
         try:
