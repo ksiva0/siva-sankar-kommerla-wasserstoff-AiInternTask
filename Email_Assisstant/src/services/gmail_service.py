@@ -19,13 +19,26 @@ class GmailService:
             self.service = self._authenticate()
 
     def _authenticate(self):
-        """Authenticate using credentials from Streamlit secrets."""
         try:
+            # Debug: Check if credentials are available
+            if "credentials" not in st.secrets:
+                logging.error("❌ 'credentials' not found in Streamlit secrets.")
+                return None
+    
             creds_data = st.secrets["credentials"]
-            creds = Credentials.from_authorized_user_info(info=creds_data, scopes=SCOPES)
-            return build('gmail', 'v1', credentials=creds)
+            logging.info(f"✅ Credentials keys loaded: {list(creds_data.keys())}")
+    
+            creds = Credentials.from_authorized_user_info(
+                info=creds_data,
+                scopes=SCOPES
+            )
+    
+            service = build('gmail', 'v1', credentials=creds)
+            logging.info("✅ Gmail service initialized successfully.")
+            return service
+    
         except Exception as e:
-            logging.error(f"Failed to authenticate with Gmail: {e}")
+            logging.error(f"❌ Failed to authenticate with Gmail: {e}")
             return None
 
     def fetch_emails(self, max_results: int = 10) -> List[Dict]:
