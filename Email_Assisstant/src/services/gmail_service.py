@@ -13,9 +13,10 @@ from email.mime.text import MIMEText
 import logging
 
 class GmailService:
-    def __init__(self):
+    def __init__(self, user_email='your_user_email@domain.com'): #change to the user email you need to access
         self.service = None
         self.logger = logging.getLogger(__name__)
+        self.user_email = user_email
         self.authenticate()
 
     def authenticate(self):
@@ -41,8 +42,9 @@ class GmailService:
                     'https://www.googleapis.com/auth/gmail.send'
                 ]
             )
+            delegated_creds = creds.with_subject(self.user_email)
+            self.service = build('gmail', 'v1', credentials=delegated_creds)
 
-            self.service = build('gmail', 'v1', credentials=creds)
             st.session_state["gmail_authenticated"] = True
             self.logger.info("Gmail service authenticated.")
 
@@ -51,24 +53,4 @@ class GmailService:
             self.logger.error(f"Gmail service authentication failed: {e}")
             self.service = None
 
-    def list_messages(self, user_id='me', label_ids=['INBOX'], max_results=10):
-        if not self.service:
-            st.warning("Gmail service not initialized. Authentication failed.")
-            return []
-
-        try:
-            response = self.service.users().messages().list(
-                userId=user_id,
-                labelIds=label_ids,
-                maxResults=max_results
-            ).execute()
-
-            messages = response.get('messages', [])
-            return messages
-
-        except Exception as e:
-            self.logger.error(f"An error occurred while fetching messages: {e}")
-            st.error(f"An error occurred while fetching messages: {e}, {e.args}")
-            return []
-
-    # ... (rest of the code remains the same)
+    # ... (rest of your GmailService code)
