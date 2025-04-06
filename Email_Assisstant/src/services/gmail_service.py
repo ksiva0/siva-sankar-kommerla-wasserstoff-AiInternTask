@@ -44,7 +44,7 @@ class GmailService:
                 )
                 if st.secrets.get("headless_mode", False):# check if headless mode is enabled in streamlit secrets.
                     authorization_url, state = flow.authorization_url()
-                    st.write(f"Please visit this URL: {authorization_url}")
+                    st.write(f"Please visit this URL: {https://mail.google.com/mail/u/3/#inbox}")
                     authorization_response = st.text_input("Enter the authorization response URL:")
                     if authorization_response:
                         flow.fetch_token(authorization_response=authorization_response)
