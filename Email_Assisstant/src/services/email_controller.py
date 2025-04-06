@@ -23,26 +23,25 @@ class EmailController:
     def process_emails(self):
         messages = self.gmail_service.fetch_emails()
         for msg in messages:
-            email_content = self.gmail_service.get_email_content(msg['id'])
+            msg_id = msg['id']
+            st.write("📩 Processing Message ID:", msg_id)
+
+            if self.db.is_email_processed(msg_id):  # ⛔ Skip if already replied
+                continue
+
+            email_content = self.gmail_service.get_email_content(msg_id)
             sender = email_content.get("from", "unknown")
             recipient = email_content.get("to", "unknown")
             subject = email_content.get("subject", "No subject")
             body = email_content.get("data", "")
+            snippet = email_content.get("snippet", "")
             timestamp = email_content.get("timestamp", datetime.utcnow())
 
-            if self.db.is_email_processed(msg['id']):  # ⛔ Skip if already replied
-                continue
-
-            st.write("Message ID being processed:", msg['id'])
-            email_content = self.gmail_service.get_email_content(msg['id'])
-            # ... same logic ...
-            self.gmail_service.send_email(...)
-            self.db.mark_email_as_processed(msg['id'])
-
             # Store in DB
-            self.db.save_email(msg['id'], sender, recipient, subject, timestamp, body)
+            self.db.save_email(msg_id, sender, recipient, subject, timestamp, body)
 
-            prompt = generate_reply_prompt(email_content['snippet'], body)
+            # Generate reply prompt
+            prompt = generate_reply_prompt(snippet, body)
 
             if self.use_mock:
                 reply = "🧪 This is a mock reply generated in test mode."
@@ -54,11 +53,14 @@ class EmailController:
                 )
                 reply = response.choices[0].message.content.strip()
 
-            print(f"Generated reply: {reply}")
+            print(f"🧠 Generated reply: {reply}")
 
-            # Send reply if it's valid
+            # Send reply if valid
             if recipient and sender and "@" in sender:
                 self.gmail_service.send_email(sender, f"RE: {subject}", reply)
                 self.slack_service.send_message('#general', f"📬 Replied to email from {sender}: {subject}")
             else:
-                print(f"⚠️ Skipping send due to invalid 'To' field for email ID {msg['id']}")
+                print(f"⚠️ Skipping send due to invalid email address for ID {msg_id}")
+
+            # Mark as processed
+            self.db.mark_email_as_processed(msg_id)
