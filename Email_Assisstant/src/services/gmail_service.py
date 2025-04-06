@@ -1,5 +1,3 @@
-# src/services/gmail_service.py
-
 import os
 import pickle
 import base64
@@ -7,6 +5,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import logging
+import streamlit as st 
 
 class GmailService:
     def __init__(self, credentials):
@@ -26,8 +25,10 @@ class GmailService:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', ['https://www.googleapis.com/auth/gmail.readonly'])  # Adjust scopes as needed
+                # Use credentials from Streamlit Secrets
+                client_config = st.secrets["credentials"]  # Get credentials from secrets
+                flow = InstalledAppFlow.from_client_config(
+                    client_config, ['https://www.googleapis.com/auth/gmail.readonly'])  # Adjust scopes as needed
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open('token.pickle', 'wb') as token:
@@ -52,7 +53,6 @@ class GmailService:
                       break
                 else:
                   body = base64.urlsafe_b64decode(payload['body']['data'].encode('ASCII')).decode('utf-8')
-
 
                 sender = next((header['value'] for header in headers if header['name'] == 'From'), None)
                 subject = next((header['value'] for header in headers if header['name'] == 'Subject'), None)
