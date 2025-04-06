@@ -22,7 +22,7 @@ class GmailService:
         if 'token.pickle' in os.listdir():
             with open('token.pickle', 'rb') as token:
                 creds = pickle.load(token)
-    
+
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
@@ -36,47 +36,56 @@ class GmailService:
                         "token_uri": st.secrets["google_oauth"].get("token_uri", "https://oauth2.googleapis.com/token")
                     }
                 }
-    
+
                 flow = InstalledAppFlow.from_client_config(
                     client_config,
-                    ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/calendar',
-                    'https://www.googleapis.com/auth/calendar.events']
+                    ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
                 )
-                if st.secrets.get("headless_mode", False):# check if headless mode is enabled in streamlit secrets.
-                    authorization_url, state = flow.authorization_url()
-                    st.write(f"Please visit this URL: {https://mail.google.com/mail/u/3/#inbox}")
+
+                try:
+                    creds = flow.run_local_server(port=0)  # Attempt to run in headed mode
+                except Exception as e:
+                    self.logger.warning(f"Failed to run local server: {e}. Falling back to manual authorization.")
+                    authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
+                    email_url = "https://mail.google.com/mail/u/0/" #Default gmail URL.
+                    st.write(f"Please visit this URL: {authorization_url}")
+                    st.write(f"Once you have authorized, paste the resulting URL here.")
+                    st.write(f"This application is requesting access to your email at: {email_url}")
                     authorization_response = st.text_input("Enter the authorization response URL:")
                     if authorization_response:
-                        flow.fetch_token(authorization_response=authorization_response)
-                        creds = flow.credentials
-                else:
-                    creds = flow.run_local_server(port=0)
-    
-            with open('token.pickle', 'wb') as token:
-                pickle.dump(creds, token)
-    
+                        try:
+                            flow.fetch_token(authorization_response=authorization_response)
+                            creds = flow.credentials
+                        except Exception as fetch_error:
+                            st.error(f"Failed to fetch token: {fetch_error}")
+                            return
+
+                with open('token.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
+
         self.service = build('gmail', 'v1', credentials=creds)
-        def list_messages(self, user_id='me', label_ids=['INBOX'], max_results=10):
-            try:
-                results = self.service.users().messages().list(userId=user_id, labelIds=label_ids, maxResults=max_results).execute()
-                messages = results.get('messages', [])
-                return messages
-            except Exception as e:
-                self.logger.error(f"An error occurred: {e}")
-                st.error(f"An error occurred: {e}")
-                return []
-    
-        def get_message(self, message_id, user_id='me', format='full'):
-            if not self.service:
-                st.warning("Gmail service not initialized. Authentication failed.")
-                return None
-            try:
-                message = self.service.users().messages().get(userId=user_id, id=message_id, format=format).execute()
-                return message
-            except Exception as e:
-                st.error(f"An error occurred while getting message: {e}")
-                self.logger.error(f"An error occurred while getting message: {e}")
-                return None
+
+    def list_messages(self, user_id='me', label_ids=['INBOX'], max_results=10):
+        try:
+            results = self.service.users().messages().list(userId=user_id, labelIds=label_ids, maxResults=max_results).execute()
+            messages = results.get('messages', [])
+            return messages
+        except Exception as e:
+            self.logger.error(f"An error occurred: {e}")
+            st.error(f"An error occurred: {e}")
+            return []
+
+    def get_message(self, message_id, user_id='me', format='full'):
+        if not self.service:
+            st.warning("Gmail service not initialized. Authentication failed.")
+            return None
+        try:
+            message = self.service.users().messages().get(userId=user_id, id=message_id, format=format).execute()
+            return message
+        except Exception as e:
+            st.error(f"An error occurred while getting message: {e}")
+            self.logger.error(f"An error occurred while getting message: {e}")
+            return None
 
     def get_email_data(self, message):
         headers = message['payload']['headers']
