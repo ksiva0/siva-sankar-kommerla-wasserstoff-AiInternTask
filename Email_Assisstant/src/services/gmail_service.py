@@ -49,55 +49,67 @@ class GmailService:
         if 'token' in st.session_state:
             try:
                 creds = Credentials.from_authorized_user_info(json.loads(st.session_state['token']))
+                self.logger.info("Loaded credentials from session state.")
             except Exception as e:
                 self.logger.error(f"Error loading credentials from session state: {e}")
-
+    
         if not creds or not creds.valid:
+            self.logger.info("Credentials are missing or invalid.")
             if creds and creds.expired and creds.refresh_token:
                 try:
                     creds.refresh(Request())
-                    st.session_state['token'] = creds.to_json()
+                    self.logger.info("Credentials refreshed successfully.")
                 except Exception as e:
-                    self.logger.error(f"Error refreshing credentials: {e}")
-                    st.error("Failed to refresh credentials. Please re-authorize.")
+                    self.logger.error(f"Failed to refresh token: {e}")
+                    st.error("🔁 Failed to refresh credentials. Please re-authorize.")
                     return None
             else:
                 code = st.query_params.get("code")
                 if code:
+                    self.logger.info(f"Received auth code: {code}")
                     try:
                         client_config = self._load_client_config()
                         flow = Flow.from_client_config(
                             client_config,
-                            scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
+                            scopes=[
+                                'https://www.googleapis.com/auth/gmail.readonly',
+                                'https://www.googleapis.com/auth/gmail.send'
+                            ],
                             redirect_uri=client_config["web"]["redirect_uris"][0],
                         )
                         flow.fetch_token(code=code)
                         creds = flow.credentials
                         st.session_state['token'] = creds.to_json()
+                        self.logger.info("Fetched new credentials from code.")
                         st.query_params.clear()
                     except Exception as e:
-                        self.logger.error(f"Error authenticating: {e}")
-                        st.error(f"Error authenticating: {e}")
+                        self.logger.error(f"Error fetching token from code: {e}")
+                        st.error("🔑 Failed to fetch token. Please re-authorize.")
                         return None
                 else:
+                    self.logger.info("No code found. Asking for authorization.")
                     try:
                         client_config = self._load_client_config()
                         flow = Flow.from_client_config(
                             client_config,
-                            scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
+                            scopes=[
+                                'https://www.googleapis.com/auth/gmail.readonly',
+                                'https://www.googleapis.com/auth/gmail.send'
+                            ],
                             redirect_uri=client_config["web"]["redirect_uris"][0],
                         )
-                        authorization_url, state = flow.authorization_url(
+                        authorization_url, _ = flow.authorization_url(
                             access_type='offline',
                             include_granted_scopes='true'
                         )
-                        st.markdown(f'<a href="{authorization_url}">Authorize</a>', unsafe_allow_html=True)
+                        st.markdown(f'📧 [Click here to authorize Gmail access]({authorization_url})')
                         return None
                     except Exception as e:
-                        self.logger.error(f"Error generating auth url: {e}")
-                        st.error(f"Error generating auth url: {e}")
+                        self.logger.error(f"Error generating auth URL: {e}")
+                        st.error("❌ Failed to generate auth URL.")
                         return None
         return creds
+
 
     def get_emails(self, num_emails=5):
         if self.service is None:
