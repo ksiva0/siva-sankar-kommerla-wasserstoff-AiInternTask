@@ -12,6 +12,7 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googlea
 class GmailService:
     def __init__(self, use_mock=False):
         self.use_mock = use_mock
+        self.gmail_service = GmailService(use_mock=use_mock)
         self.creds = self.authenticate()
         self.service = build('gmail', 'v1', credentials=self.creds)
 
