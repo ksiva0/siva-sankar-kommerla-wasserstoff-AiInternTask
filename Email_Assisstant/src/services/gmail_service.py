@@ -16,9 +16,15 @@ class GmailService:
     def __init__(self, credentials=None):
         self.logger = logging.getLogger(__name__)
         self.creds = credentials if credentials else self._authenticate()
-        if self.creds:
-            self.service = build('gmail', 'v1', credentials=self.creds)
+        if self.creds and self.creds.valid:
+            try:
+                self.service = build('gmail', 'v1', credentials=self.creds)
+            except Exception as e:
+                self.logger.error(f"Failed to initialize Gmail service: {e}")
+                st.error("Failed to initialize Gmail service.")
+                self.service = None
         else:
+            self.logger.warning("No valid credentials available.")
             self.service = None
 
     def _load_client_config(self):
@@ -48,7 +54,13 @@ class GmailService:
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+                try:
+                    creds.refresh(Request())
+                    st.session_state['token'] = creds.to_json()
+                except Exception as e:
+                    self.logger.error(f"Error refreshing credentials: {e}")
+                    st.error("Failed to refresh credentials. Please re-authorize.")
+                    return None
             else:
                 code = st.query_params.get("code")
                 if code:
@@ -98,15 +110,15 @@ class GmailService:
             emails = []
             for message in messages:
                 msg = self.service.users().messages().get(userId='me', id=message['id'], format='full').execute()
-                payload = msg['payload']
-                headers = payload['headers']
+                payload = msg.get('payload', {})
+                headers = payload.get('headers', [])
                 body = ""
                 if 'parts' in payload:
                     for part in payload['parts']:
-                        if part['mimeType'] == 'text/plain':
+                        if part['mimeType'] == 'text/plain' and 'data' in part['body']:
                             body = base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')).decode('utf-8')
                             break
-                else:
+                elif 'body' in payload and 'data' in payload['body']:
                     body = base64.urlsafe_b64decode(payload['body']['data'].encode('ASCII')).decode('utf-8')
 
                 sender = next((header['value'] for header in headers if header['name'] == 'From'), None)
@@ -120,4 +132,5 @@ class GmailService:
             return emails
         except Exception as e:
             self.logger.error(f"Error fetching emails: {e}")
+            st.error("Failed to fetch emails from Gmail.")
             return []
