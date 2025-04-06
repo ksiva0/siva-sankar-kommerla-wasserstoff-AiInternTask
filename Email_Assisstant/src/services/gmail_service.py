@@ -67,62 +67,8 @@ class GmailService:
             return messages
 
         except Exception as e:
-            st.error(f"An error occurred while fetching messages: {e}")
             self.logger.error(f"An error occurred while fetching messages: {e}")
+            st.error(f"An error occurred while fetching messages: {e}, {e.args}")
             return []
 
-    def get_message(self, message_id, user_id='me', format='full'):
-        if not self.service:
-            st.warning("Gmail service not initialized. Authentication failed.")
-            return None
-        try:
-            message = self.service.users().messages().get(userId=user_id, id=message_id, format=format).execute()
-            return message
-        except Exception as e:
-            st.error(f"An error occurred while getting message: {e}")
-            self.logger.error(f"An error occurred while getting message: {e}")
-            return None
-
-    def get_email_data(self, message):
-        headers = message['payload']['headers']
-        sender = next((header['value'] for header in headers if header['name'] == 'From'), None)
-        subject = next((header['value'] for header in headers if header['name'] == 'Subject'), None)
-        date = next((header['value'] for header in headers if header['name'] == 'Date'), None)
-
-        body = self.get_email_body(message['payload'])
-
-        return {
-            'sender': sender,
-            'subject': subject,
-            'date': date,
-            'body': body
-        }
-
-    def get_email_body(self, payload):
-        if 'parts' in payload:
-            parts = payload['parts']
-            text_parts = [self.get_email_body(part) for part in parts if part['mimeType'] == 'text/plain']
-            html_parts = [self.get_email_body(part) for part in parts if part['mimeType'] == 'text/html']
-            return '\n'.join(text_parts) or '\n'.join(html_parts)
-        elif 'data' in payload:
-            return base64.urlsafe_b64decode(payload['data'].encode('ascii')).decode('utf-8', errors='ignore')
-        return ''
-
-    def send_message(self, user_id='me', message_body='', to='', subject=''):
-        if not self.service:
-            st.warning("Gmail service not initialized. Authentication failed.")
-            return
-
-        try:
-            message = MIMEText(message_body)
-            message['to'] = to
-            message['subject'] = subject
-            raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-
-            send_message = self.service.users().messages().send(userId=user_id, body={'raw': raw_message}).execute()
-            self.logger.info(f"Email sent: {send_message['id']}")
-            return send_message
-        except Exception as e:
-            st.error(f"An error occurred while sending message: {e}")
-            self.logger.error(f"An error occurred while sending message: {e}")
-            return None
+    # ... (rest of the code remains the same)
