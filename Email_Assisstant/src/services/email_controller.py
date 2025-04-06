@@ -12,14 +12,12 @@ from datetime import datetime
 
 class EmailController:
     def __init__(self, slack_token, use_mock=False):
-        self.gmail_service = GmailService()
+        self.use_mock = use_mock
+        self.gmail_service = GmailService(use_mock=use_mock)
         self.slack_service = SlackService(slack_token)
         self.calendar_service = CalendarService()
-        self.db = DatabaseService()
-        self.use_mock = use_mock
-
         self.openai_api_key = st.secrets["openai"]["OPENAI_API_KEY"]
-        self.openai_client = OpenAI(api_key=self.openai_api_key) 
+        self.openai_client = OpenAI(api_key=self.openai_api_key)
 
     def process_emails(self):
         messages = self.gmail_service.fetch_emails()
