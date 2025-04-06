@@ -1,42 +1,35 @@
 # src/services/gmail_service.py
 
-import os
 import base64
-import pickle
 import logging
 import streamlit as st
-from io import BytesIO
 from email.mime.text import MIMEText
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
+from typing import List, Dict, Optional
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
 
 class GmailService:
-    def __init__(self, use_mock=False):
+    def __init__(self, use_mock: bool = False):
         self.use_mock = use_mock
         self.service = None
         if not self.use_mock:
             self.service = self._authenticate()
 
     def _authenticate(self):
+        """Authenticate using credentials from Streamlit secrets."""
         try:
-            # Load credentials from Streamlit secrets
             creds_data = st.secrets["credentials"]
-
-            creds = Credentials.from_authorized_user_info(
-                info=creds_data,
-                scopes=SCOPES
-            )
-
+            creds = Credentials.from_authorized_user_info(info=creds_data, scopes=SCOPES)
             return build('gmail', 'v1', credentials=creds)
-
         except Exception as e:
             logging.error(f"Failed to authenticate with Gmail: {e}")
             return None
 
-    def fetch_emails(self, max_results=10):
+    def fetch_emails(self, max_results: int = 10) -> List[Dict]:
+        """Fetch email metadata (IDs) from the user's inbox."""
         if self.use_mock:
             return [{"id": "mock1"}, {"id": "mock2"}]
 
@@ -62,7 +55,8 @@ class GmailService:
             logging.error(f"Gmail API error during fetch_emails: {error}")
             return []
 
-    def get_email_content(self, msg_id):
+    def get_email_content(self, msg_id: str) -> Dict:
+        """Retrieve full content of an email by message ID."""
         if self.use_mock:
             return {
                 "from": "mock@example.com",
@@ -81,14 +75,21 @@ class GmailService:
             snippet = message.get('snippet', '')
             body = ''
 
-            parts = message['payload'].get('parts', [])
-            if parts:
+            def extract_plain_text(parts):
                 for part in parts:
-                    if part['mimeType'] == 'text/plain' and 'data' in part['body']:
-                        body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8', errors='ignore')
-                        break
-            elif 'body' in message['payload'] and 'data' in message['payload']['body']:
-                body = base64.urlsafe_b64decode(message['payload']['body']['data']).decode('utf-8', errors='ignore')
+                    if part.get('mimeType') == 'text/plain' and 'data' in part.get('body', {}):
+                        return base64.urlsafe_b64decode(part['body']['data']).decode('utf-8', errors='ignore')
+                    if 'parts' in part:
+                        result = extract_plain_text(part['parts'])
+                        if result:
+                            return result
+                return ''
+
+            payload = message.get('payload', {})
+            if 'parts' in payload:
+                body = extract_plain_text(payload['parts'])
+            elif 'body' in payload and 'data' in payload['body']:
+                body = base64.urlsafe_b64decode(payload['body']['data']).decode('utf-8', errors='ignore')
 
             return {
                 "from": header_dict.get("From"),
@@ -103,10 +104,11 @@ class GmailService:
             logging.error(f"Error fetching email content for {msg_id}: {error}")
             return {}
 
-    def send_email(self, to, subject, message_text):
+    def send_email(self, to: str, subject: str, message_text: str) -> Optional[Dict]:
+        """Send an email via the Gmail API."""
         if self.use_mock:
             print(f"📤 Mock email sent to {to} with subject '{subject}'")
-            return
+            return {"status": "mock", "to": to, "subject": subject}
 
         if not self.service:
             raise RuntimeError("Gmail service not initialized")
@@ -116,6 +118,7 @@ class GmailService:
             message['to'] = to
             message['subject'] = subject
             raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
             return self.service.users().messages().send(userId='me', body={'raw': raw}).execute()
 
         except HttpError as error:
