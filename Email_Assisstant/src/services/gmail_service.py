@@ -31,7 +31,7 @@ class GmailService:
                         import google.auth.transport.requests
                         from google_auth_oauthlib.flow import Flow #import here
                         flow = Flow.from_client_config(
-                            st.secrets["google_oauth"],
+                            st.secrets["google_oauth"]["client_secret"],
                             scopes=['https://www.googleapis.com/auth/gmail.readonly'],
                             redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
                         )
