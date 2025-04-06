@@ -12,6 +12,13 @@ def main():
     st.title("📧 Email Assistant")
 
     use_mock = st.sidebar.checkbox("🔧 Use Mock Mode", value=True)
+    auto_run = st.sidebar.checkbox("🔁 Auto-Run Every 60 Seconds", value=False)
+
+    # Automatically rerun the script every 60 seconds if auto mode is enabled
+    if auto_run:
+        st.info("⏱️ Auto-run mode is ON. This page will refresh every 60 seconds to process emails.")
+        time.sleep(60)
+        st.experimental_rerun()
 
     # Ask user to trigger email processing manually
     if st.button("📥 Process Emails Now"):
