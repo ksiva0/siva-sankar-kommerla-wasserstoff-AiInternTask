@@ -31,38 +31,40 @@ class GmailService:
                 code = st.query_params.get("code")
                 if code:
                     try:
+                        client_config = {
+                            "web": {
+                                "client_id": st.secrets["google_oauth"]["client_id"],
+                                "client_secret": st.secrets["google_oauth"]["client_secret"],
+                                "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
+                                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                                "token_uri": "https://oauth2.googleapis.com/token"
+                            }
+                        }
                         flow = Flow.from_client_config(
-                            {
-                                "web": {  # Changed from root to web. This is CRUCIAL
-                                    "client_id": st.secrets["google_oauth"]["client_id"],
-                                    "client_secret": st.secrets["google_oauth"]["client_secret"],
-                                    "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],  # Changed to a list
-                                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",  # added these as they were in the original code
-                                    "token_uri": "https://oauth2.googleapis.com/token"
-                                }
-                            },
+                            client_config,
                             scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
                             redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
                         )
                         flow.fetch_token(code=code)
                         creds = flow.credentials
-                        st.session_state['token'] = creds.to_json()  # store token in session state.
-                        st.query_params.clear()  # clear query parameters
+                        st.session_state['token'] = creds.to_json()
+                        st.query_params.clear()
                     except Exception as e:
                         st.error(f"Error authenticating: {e}")
                         return None
                 else:
                     try:
+                        client_config = {
+                            "web": {
+                                "client_id": st.secrets["google_oauth"]["client_id"],
+                                "client_secret": st.secrets["google_oauth"]["client_secret"],
+                                "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
+                                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                                "token_uri": "https://oauth2.googleapis.com/token"
+                            }
+                        }
                         flow = Flow.from_client_config(
-                            {
-                                "web": {  # Changed from root to web. This is CRUCIAL
-                                    "client_id": st.secrets["google_oauth"]["client_id"],
-                                    "client_secret": st.secrets["google_oauth"]["client_secret"],
-                                    "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],  # Changed to a list
-                                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",  # added these as they were in the original code
-                                    "token_uri": "https://oauth2.googleapis.com/token"
-                                }
-                            },
+                            client_config,
                             scopes=['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'],
                             redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
                         )
