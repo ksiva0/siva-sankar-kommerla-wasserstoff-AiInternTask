@@ -5,6 +5,7 @@ import logging
 import streamlit as st
 from email.mime.text import MIMEText
 from googleapiclient.discovery import build
+from google.oauth2 import service_account
 from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
 from typing import List, Dict, Optional
