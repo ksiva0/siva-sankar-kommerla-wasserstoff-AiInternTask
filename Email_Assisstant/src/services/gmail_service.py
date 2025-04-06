@@ -27,11 +27,13 @@ class GmailService:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
+                redirect_uri = st.secrets["google_oauth"]["redirect_uri"]
+                print(f"Redirect URI being used: {redirect_uri}") # Debugging line.
                 client_config = {
                     "web": {
                         "client_id": st.secrets["google_oauth"]["client_id"],
                         "client_secret": st.secrets["google_oauth"]["client_secret"],
-                        "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
+                        "redirect_uris": [redirect_uri],
                         "auth_uri": st.secrets["google_oauth"].get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
                         "token_uri": st.secrets["google_oauth"].get("token_uri", "https://oauth2.googleapis.com/token")
                     }
@@ -47,7 +49,7 @@ class GmailService:
                 except Exception as e:
                     self.logger.warning(f"Failed to run local server: {e}. Falling back to manual authorization.")
                     authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
-                    email_url = "https://mail.google.com/mail/u/0/" #Default gmail URL.
+                    email_url = "https://mail.google.com/mail/u/0/"
                     st.write(f"Please visit this URL: {authorization_url}")
                     st.write(f"Once you have authorized, paste the resulting URL here.")
                     st.write(f"This application is requesting access to your email at: {email_url}")
