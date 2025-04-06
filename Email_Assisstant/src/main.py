@@ -19,7 +19,7 @@ def main():
     if auto_run:
         st.info("⏱️ Auto-run mode is ON. This page will refresh every 60 seconds to process emails.")
         time.sleep(60)
-        st.experimental_rerun()
+        process_emails(use_mock)
 
     # Ask user to trigger email processing manually
     if st.button("📥 Process Emails Now"):
