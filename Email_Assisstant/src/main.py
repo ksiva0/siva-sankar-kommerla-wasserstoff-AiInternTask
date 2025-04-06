@@ -31,11 +31,17 @@ def main():
         email_controller.process_emails()
         st.success("✅ Emails processed manually!")
 
-    # Auto-run background every 60 seconds
     if auto_mode:
         st.info("⏱️ Auto-run mode is ON. This page will refresh every 60 seconds to process emails.")
-        email_controller.process_emails()
-        st.experimental_rerun()  # Will refresh the page
+        
+        if 'last_run' not in st.session_state:
+            st.session_state['last_run'] = time.time()
+    
+        # Run only if 60 seconds have passed
+        if time.time() - st.session_state['last_run'] > 60:
+            email_controller.process_emails()
+            st.session_state['last_run'] = time.time()
+            st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
