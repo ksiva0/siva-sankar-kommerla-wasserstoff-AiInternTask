@@ -1,3 +1,5 @@
+# src/services/gmail_service.py
+
 import os
 import pickle
 import base64
@@ -6,6 +8,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import logging
 import streamlit as st
+from google_auth_oauthlib.flow import Flow #import here
 
 class GmailService:
     def __init__(self, credentials):
@@ -28,14 +31,13 @@ class GmailService:
                 code = st.query_params.get("code")
                 if code:
                     try:
-                        import google.auth.transport.requests
-                        from google_auth_oauthlib.flow import Flow #import here
+
                         flow = Flow.from_client_config(
-                            st.secrets["google_oauth"]["client_secret"],
+                            st.secrets["google_oauth"],
                             scopes=['https://www.googleapis.com/auth/gmail.readonly'],
                             redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
                         )
-                        flow.fetch_token(code=code) #code is already a list like object when using st.query_params
+                        flow.fetch_token(code=code)
                         creds = flow.credentials
                         st.session_state['token'] = creds.to_json() # store token in session state.
                         st.query_params.clear() #clear query parameters
@@ -44,8 +46,8 @@ class GmailService:
                         return None
                 else:
                     try:
-                        import google_auth_oauthlib.flow #import here
-                        flow = google_auth_oauthlib.flow.Flow.from_client_config(
+
+                        flow = Flow.from_client_config(
                             st.secrets["google_oauth"],
                             scopes=['https://www.googleapis.com/auth/gmail.readonly'],
                             redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
