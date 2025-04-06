@@ -2,41 +2,65 @@ import os
 import pickle
 import base64
 from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import logging
-import streamlit as st 
+import streamlit as st
 
 class GmailService:
     def __init__(self, credentials):
         self.logger = logging.getLogger(__name__)
-        self.service = self._authenticate()
+        self.creds = self._authenticate()
+        if self.creds: #only build if auth was successful.
+            self.service = build('gmail', 'v1', credentials=self.creds)
+        else:
+            self.service = None
 
     def _authenticate(self):
         creds = None
-        # The file token.pickle stores the user's access and refresh tokens, and is
-        # created automatically when the authorization flow completes for the first
-        # time.
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
-        # If there are no (valid) credentials available, let the user log in.
+        if 'token' in st.session_state:
+            creds = Credentials.from_authorized_user_info(st.session_state['token'])
+
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                # Use credentials from Streamlit Secrets
-                client_config = st.secrets["credentials"]  # Get credentials from secrets
-                flow = InstalledAppFlow.from_client_config(
-                    client_config, ['https://www.googleapis.com/auth/gmail.readonly'])  # Adjust scopes as needed
-                creds = flow.run_local_server(port=0)
-            # Save the credentials for the next run
-            with open('token.pickle', 'wb') as token:
-                pickle.dump(creds, token)
-
-        return build('gmail', 'v1', credentials=creds)
+                code = st.experimental_get_query_params().get("code")
+                if code:
+                    try:
+                        import google.auth.transport.requests
+                        from google_auth_oauthlib.flow import Flow
+                        flow = Flow.from_client_config(
+                            st.secrets["google_oauth"],
+                            scopes=['https://www.googleapis.com/auth/gmail.readonly'],
+                            redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
+                        )
+                        flow.fetch_token(code=code[0])
+                        creds = flow.credentials
+                        st.session_state['token'] = creds.to_json() # store token in session state.
+                        st.experimental_set_query_params() #clear query parameters
+                    except Exception as e:
+                        st.error(f"Error authenticating: {e}")
+                        return None
+                else:
+                    flow = Flow.from_client_config(
+                        st.secrets["google_oauth"],
+                        scopes=['https://www.googleapis.com/auth/gmail.readonly'],
+                        redirect_uri=st.secrets["google_oauth"]["redirect_uri"]
+                    )
+                    authorization_url, state = flow.authorization_url(
+                        access_type='offline',
+                        include_granted_scopes='true'
+                    )
+                    st.markdown(f'<a href="{authorization_url}">Authorize</a>', unsafe_allow_html=True)
+                    return None
+        return creds
 
     def get_emails(self, num_emails=5):
+        if self.service is None:
+          st.error("Gmail service not initialized. Authentication failed.")
+          return []
+
         try:
             results = self.service.users().messages().list(userId='me', maxResults=num_emails).execute()
             messages = results.get('messages', [])
