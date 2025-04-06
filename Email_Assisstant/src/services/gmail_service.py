@@ -39,7 +39,8 @@ class GmailService:
     
                 flow = InstalledAppFlow.from_client_config(
                     client_config,
-                    ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
+                    ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/calendar',
+                    'https://www.googleapis.com/auth/calendar.events']
                 )
                 if st.secrets.get("headless_mode", False):# check if headless mode is enabled in streamlit secrets.
                     authorization_url, state = flow.authorization_url()
