@@ -15,7 +15,7 @@ import sys
 class GmailService:
     def __init__(self, credentials=None):
         self.logger = logging.getLogger(__name__)
-        self.creds = self._authenticate()
+        self.creds = credentials if credentials else self._authenticate()
         if self.creds:
             self.service = build('gmail', 'v1', credentials=self.creds)
         else:
