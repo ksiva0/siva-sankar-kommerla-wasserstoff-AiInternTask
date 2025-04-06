@@ -32,7 +32,8 @@ class EmailController:
 
             if self.db.is_email_processed(msg['id']):  # ⛔ Skip if already replied
                 continue
-    
+
+            st.write("Message ID being processed:", msg['id'])
             email_content = self.gmail_service.get_email_content(msg['id'])
             # ... same logic ...
             self.gmail_service.send_email(...)
