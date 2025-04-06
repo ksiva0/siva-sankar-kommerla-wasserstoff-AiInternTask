@@ -49,9 +49,10 @@ class GmailService:
         st.stop()
 
     def fetch_emails(self, max_results=10):
-        if self.use_mock:
-            return [{"id": "mock123"}]  # Simulate one message
-        result = self.service.users().messages().list(userId='me', maxResults=max_results).execute()
+        # Fetch all messages (not just unread)
+        result = self.service.users().messages().list(
+            userId='me', maxResults=max_results, q=""
+        ).execute()
         messages = result.get('messages', [])
         return messages
 
