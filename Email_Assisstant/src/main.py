@@ -37,7 +37,12 @@ def main():
     st.title("AI Email Assistant")
 
     try:
-        email_controller = EmailController()
+        user_email = st.text_input("Enter the user email to access:", key="user_email")
+        if not user_email:
+            st.warning("Please enter a user email.")
+            return
+
+        email_controller = EmailController(user_email=user_email)
     except Exception as e:
         st.error(f"Error initializing services: {e}")
         logger.error(f"Error initializing services: {e}")
@@ -86,8 +91,11 @@ def main():
             try:
                 emails = email_controller.fetch_emails()
                 if emails and 0 <= email_index < len(emails):
-                    email_controller.send_to_slack(emails[email_index], slack_channel)
-                    st.success("Email sent to Slack!")
+                    result = email_controller.send_to_slack(emails[email_index], slack_channel)
+                    if result and result.get("ok"):
+                        st.success("Email sent to Slack!")
+                    else:
+                        st.error(f"Failed to send email to slack. Result: {result}")
                 else:
                     st.info("No emails to send to Slack or invalid email index.")
             except Exception as e:
