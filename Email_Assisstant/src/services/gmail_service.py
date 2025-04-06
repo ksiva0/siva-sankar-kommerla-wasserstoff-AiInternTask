@@ -1,11 +1,13 @@
 # src/services/gmail_service.py
 import os
 import base64
+import pickle
 import streamlit as st
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
-import pickle
+from google_auth_oauthlib.flow import InstalledAppFlow
+from email.mime.text import MIMEText
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
 
@@ -13,44 +15,38 @@ class GmailService:
     def __init__(self, use_mock=False):
         self.use_mock = use_mock
         self.service = None
-        if not use_mock:
-            creds = None
-            if os.path.exists('token.pickle'):
-                with open('token.pickle', 'rb') as token:
-                    creds = pickle.load(token)
 
-            if not creds or not creds.valid:
-                if creds and creds.expired and creds.refresh_token:
-                    creds.refresh(Request())
-                else:
-                    flow = Flow.from_client_secrets_file(
-                        'credentials.json',
-                        scopes=SCOPES,
-                        redirect_uri='http://localhost:8501'
-                    )
-                    auth_url, _ = flow.authorization_url(prompt='consent')
-                    st.write(f"Please authorize access: [Click here]({auth_url})")
-                    return
+        if self.use_mock:
+            return  # Skip Gmail API setup in mock mode
 
-            self.service = build('gmail', 'v1', credentials=creds)
+        creds = None
+        if os.path.exists('token.pickle'):
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+
+        self.service = build('gmail', 'v1', credentials=creds)
 
     def fetch_emails(self, max_results=10):
         if self.use_mock:
-            return [
-                {"id": "mock1"},
-                {"id": "mock2"},
-            ]
-        if not self.service:
-            raise RuntimeError("Gmail API service is not initialized.")
-        
+            return [{"id": "mock1"}, {"id": "mock2"}]
+
         results = self.service.users().messages().list(
             userId='me',
             maxResults=max_results,
-            q=""  # No filter = fetch all emails, not just unread
+            q=""  # fetches all, not only unread
         ).execute()
-
-        messages = results.get('messages', [])
-        return messages
+        return results.get('messages', [])
 
     def get_email_content(self, msg_id):
         message = self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
@@ -80,7 +76,7 @@ class GmailService:
         if self.use_mock:
             print(f"📤 Mock email sent to {to} with subject '{subject}'")
             return
-        from email.mime.text import MIMEText
+
         message = MIMEText(message_text)
         message['to'] = to
         message['subject'] = subject
