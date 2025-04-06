@@ -11,6 +11,7 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googlea
 
 class GmailService:
     def __init__(self, use_mock=False):
+        # your existing init logic
         ...
 
     def get_email_content(self, msg_id):
