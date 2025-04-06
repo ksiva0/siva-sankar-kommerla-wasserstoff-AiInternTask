@@ -1,6 +1,5 @@
 # src/services/calendar_service.py
 
-
 import logging
 
 class CalendarService:
