@@ -28,7 +28,7 @@ class GmailService:
                 creds.refresh(Request())
             else:
                 redirect_uri = st.secrets["google_oauth"]["redirect_uri"]
-                print(f"Redirect URI being used: {redirect_uri}") # Debugging line.
+                self.logger.info(f"Using redirect URI: {redirect_uri}") # Logging change.
                 client_config = {
                     "web": {
                         "client_id": st.secrets["google_oauth"]["client_id"],
