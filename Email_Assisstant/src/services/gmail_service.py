@@ -23,22 +23,14 @@ class GmailService:
 
     def _authenticate(self):
         try:
-            # Debug: Check if credentials are available
-            if "credentials" not in st.secrets:
-                logging.error("❌ 'credentials' not found in Streamlit secrets.")
-                return None
+            # Load service account info from Streamlit secrets
+            service_account_info = st.secrets["credentials"]
     
-            creds_data = st.secrets["credentials"]
-            logging.info(f"✅ Credentials keys loaded: {list(creds_data.keys())}")
-    
-            creds = Credentials.from_authorized_user_info(
-                info=creds_data,
-                scopes=SCOPES
+            creds = service_account.Credentials.from_service_account_info(
+                service_account_info, scopes=SCOPES
             )
     
-            service = build('gmail', 'v1', credentials=creds)
-            logging.info("✅ Gmail service initialized successfully.")
-            return service
+            return build('gmail', 'v1', credentials=creds)
     
         except Exception as e:
             logging.error(f"❌ Failed to authenticate with Gmail: {e}")
