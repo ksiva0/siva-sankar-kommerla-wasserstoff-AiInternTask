@@ -13,9 +13,10 @@ from email.mime.text import MIMEText
 import logging
 
 class GmailService:
-    def __init__(self):
+    def __init__(self, user_email='your_user_email@domain.com'): #change to the user email you need to access
         self.service = None
         self.logger = logging.getLogger(__name__)
+        self.user_email = user_email
         self.authenticate()
 
     def authenticate(self):
@@ -41,8 +42,9 @@ class GmailService:
                     'https://www.googleapis.com/auth/gmail.send'
                 ]
             )
+            delegated_creds = creds.with_subject(self.user_email)
+            self.service = build('gmail', 'v1', credentials=delegated_creds)
 
-            self.service = build('gmail', 'v1', credentials=creds)
             st.session_state["gmail_authenticated"] = True
             self.logger.info("Gmail service authenticated.")
 
