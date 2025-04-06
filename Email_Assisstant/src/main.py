@@ -15,7 +15,7 @@ def main():
     st.title("📧 Email Assistant")
 
     # Toggle for mock mode
-    use_mock = st.sidebar.checkbox("🔧 Use Mock Mode", value=True)
+    use_mock = st.sidebar.checkbox("🔧 Use Mock Mode", value=False)
 
     # Toggle for auto-run mode
     auto_mode = st.sidebar.checkbox("⏱️ Auto-reply every 60 seconds", value=False)
