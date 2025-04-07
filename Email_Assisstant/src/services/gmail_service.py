@@ -1,5 +1,3 @@
-# src/services/gmail_service.py
-
 import os
 import pickle
 import streamlit as st
@@ -10,6 +8,7 @@ from googleapiclient.discovery import build
 import base64
 from email.mime.text import MIMEText
 import logging
+
 
 class GmailService:
     def __init__(self, credentials=None):
@@ -29,15 +28,14 @@ class GmailService:
                 if creds and creds.expired and creds.refresh_token:
                     creds.refresh(Request())
                 else:
-                    redirect_uri = st.secrets["google_oauth"]["redirect_uri"]
-                    self.logger.info(f"Using redirect URI: {redirect_uri}")
+                    # Console-based OAuth flow suitable for Streamlit Cloud
                     client_config = {
-                        "web": {
+                        "installed": {
                             "client_id": st.secrets["google_oauth"]["client_id"],
                             "client_secret": st.secrets["google_oauth"]["client_secret"],
-                            "redirect_uris": [redirect_uri],
-                            "auth_uri": st.secrets["google_oauth"].get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
-                            "token_uri": st.secrets["google_oauth"].get("token_uri", "https://oauth2.googleapis.com/token")
+                            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                            "token_uri": "https://oauth2.googleapis.com/token",
+                            "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob"]
                         }
                     }
 
@@ -46,28 +44,11 @@ class GmailService:
                         ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
                     )
 
-                    try:
-                        creds = flow.run_local_server(port=0)
-                    except Exception as e:
-                        self.logger.warning(f"Failed to run local server: {e}. Falling back to manual authorization.")
-                        authorization_url, _ = flow.authorization_url(
-                            access_type='offline',
-                            include_granted_scopes='true',
-                            state=None  # Disable CSRF state verification for manual pasting
-                        )
-                        st.write(f"Please visit this URL: {authorization_url}")
-                        st.write("Paste the full redirect URL after authentication below.")
-                        authorization_response = st.text_input("Authorization Response URL:")
-                        if authorization_response:
-                            try:
-                                flow.fetch_token(authorization_response=authorization_response)
-                                creds = flow.credentials
-                            except Exception as fetch_error:
-                                st.error(f"Failed to fetch token: {fetch_error}")
-                                return
+                    st.info("Authorize the application by visiting the URL below and pasting the code.")
+                    creds = flow.run_console()
 
-                    with open('token.pickle', 'wb') as token:
-                        pickle.dump(creds, token)
+                with open('token.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
 
         if creds:
             self.service = build('gmail', 'v1', credentials=creds)
