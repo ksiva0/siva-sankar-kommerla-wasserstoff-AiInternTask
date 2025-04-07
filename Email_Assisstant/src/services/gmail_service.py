@@ -44,37 +44,49 @@ class GmailService:
             payload = message.get('payload', {})
             parts = payload.get('parts', [])
 
+            body = "" #Initialize body variable.
             if parts:
                 for part in parts:
                     if part['mimeType'] == 'text/plain':
                         data = part['body'].get('data')
                         if data:
-                            return base64.urlsafe_b64decode(data).decode()
-            else:
-                body = payload.get('body', {}).get('data')
-                if body:
-                    return base64.urlsafe_b64decode(body).decode()
+                            body = base64.urlsafe_b64decode(data.encode('UTF-8')).decode('UTF-8')
+                            break #Get the first text/plain part.
+                    elif part['mimeType'] == 'text/html':
+                        data = part['body'].get('data')
+                        if data:
+                            body = base64.urlsafe_b64decode(data.encode('UTF-8')).decode('UTF-8')
+                            break #Get the first text/html part.
+
+            elif payload.get('body') and payload.get('body').get('data'):
+                data = payload['body']['data']
+                if payload.get('mimeType') == 'text/plain' or payload.get('mimeType') == 'text/html':
+                    body = base64.urlsafe_b64decode(data.encode('UTF-8')).decode('UTF-8')
+
+            return body
+
         except Exception as e:
             logging.error(f"Error decoding message body: {e}")
-        return ""
+            return ""
 
     def fetch_and_parse_emails(self, max_results=10):
         parsed_emails = []
         messages = self.list_messages(max_results=max_results)
-        for msg in messages:
-            msg_id = msg.get('id')
-            if not msg_id:
-                logging.warning("Skipping message without ID.")
-                continue
+        if messages: #Added check for empty messages list
+            for msg in messages:
+                msg_id = msg.get('id')
+                if not msg_id:
+                    logging.warning("Skipping message without ID.")
+                    continue
 
-            full_msg = self.get_message(msg_id)
-            if full_msg:
-                email_data = {
-                    'id': full_msg['id'],
-                    'threadId': full_msg.get('threadId'),
-                    'snippet': full_msg.get('snippet'),
-                    'body': self.get_message_body(full_msg),
-                    'headers': full_msg['payload'].get('headers', [])
-                }
-                parsed_emails.append(email_data)
+                full_msg = self.get_message(msg_id)
+                if full_msg:
+                    email_data = {
+                        'id': full_msg['id'],
+                        'threadId': full_msg.get('threadId'),
+                        'snippet': full_msg.get('snippet'),
+                        'body': self.get_message_body(full_msg),
+                        'headers': full_msg['payload'].get('headers', [])
+                    }
+                    parsed_emails.append(email_data)
         return parsed_emails
