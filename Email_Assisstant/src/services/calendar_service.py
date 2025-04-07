@@ -1,14 +1,22 @@
-# src/services/calendar_service.py
+# Email_Assistant/src/services/calendar_service.py
 
-import logging
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
 
-class CalendarService:
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
 
-    def create_event(self, event_details):
-        # Placeholder for Calendar API integration
-        print(f"Creating calendar event: {event_details}")
-        self.logger.info(f"Calendar event created: {event_details}")
-        # In a real implementation, you'd use the Google Calendar API here
-        return None
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
+
+def get_calendar_service():
+    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    return build("calendar", "v3", credentials=creds)
+
+
+def schedule_event(event_info):
+    service = get_calendar_service()
+    event = {
+        'summary': event_info['title'],
+        'start': {'dateTime': event_info['start'], 'timeZone': 'UTC'},
+        'end': {'dateTime': event_info['end'], 'timeZone': 'UTC'}
+    }
+    service.events().insert(calendarId='primary', body=event).execute()
