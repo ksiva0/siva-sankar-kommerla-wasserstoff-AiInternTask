@@ -1,4 +1,4 @@
-# email_assistant/src/controllers/email_controller.py
+# Email_Assistant/src/controllers/email_controller.py
 
 from services.gmail_service import fetch_emails
 from services.slack_service import send_slack_message
