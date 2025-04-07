@@ -1,4 +1,5 @@
 # Email_Assistant/src/utils/db.py
+
 import sqlite3
 
 conn = sqlite3.connect("emails.db", check_same_thread=False)
