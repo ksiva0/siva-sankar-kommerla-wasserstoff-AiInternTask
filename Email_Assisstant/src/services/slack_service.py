@@ -1,28 +1,15 @@
-# src/services/slack_service.py
+# Email_Assistant/src/services/slack_service.py
 
 import os
-import logging
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+import requests
 
-class SlackService:
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-        slack_token = os.environ.get("SLACK_BOT_TOKEN")
+SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+SLACK_CHANNEL = os.getenv("SLACK_CHANNEL", "#general")
 
-        if not slack_token:
-            raise EnvironmentError("SLACK_BOT_TOKEN must be set as an environment variable.")
-        
-        self.client = WebClient(token=slack_token)
 
-    def send_message(self, channel, text):
-        try:
-            result = self.client.chat_postMessage(channel=channel, text=text)
-            self.logger.info(f"✅ Slack message sent: {result['ts']}")
-            return result
-        except SlackApiError as e:
-            self.logger.error(f"❌ Error sending Slack message: {e.response['error']}")
-            return {"ok": False, "error": e.response['error']}
-        except Exception as e:
-            self.logger.error(f"Unexpected error sending Slack message: {e}")
-            return {"ok": False, "error": str(e)}
+def send_slack_message(email):
+    message = f"New Email from {email['sender']}\nSubject: {email['subject']}\nSnippet: {email['snippet']}"
+    url = "https://slack.com/api/chat.postMessage"
+    headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
+    data = {"channel": SLACK_CHANNEL, "text": message}
+    requests.post(url, headers=headers, data=data)
