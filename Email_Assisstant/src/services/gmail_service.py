@@ -50,9 +50,10 @@ class GmailService:
                         creds = flow.run_local_server(port=0)
                     except Exception as e:
                         self.logger.warning(f"Failed to run local server: {e}. Falling back to manual authorization.")
-                        authorization_url, state = flow.authorization_url(
+                        authorization_url, _ = flow.authorization_url(
                             access_type='offline',
-                            include_granted_scopes='true'
+                            include_granted_scopes='true',
+                            state=None  # Disable CSRF state verification for manual pasting
                         )
                         st.write(f"Please visit this URL: {authorization_url}")
                         st.write("Paste the full redirect URL after authentication below.")
