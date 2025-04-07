@@ -1,13 +1,19 @@
-# Email_Assistant/src/services/gmail_service.py
-
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
 import base64
 import logging
+import sys
+
+# Set up logging to stdout (helpful in Vercel or cloud deployments)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 class GmailService:
     def __init__(self, creds: Credentials):
+        if not creds or not creds.valid:
+            logging.error("Invalid or missing Gmail API credentials.")
+            raise ValueError("Gmail credentials are required and must be valid.")
+
         self.creds = creds
         self.service = build("gmail", "v1", credentials=self.creds)
 
@@ -54,7 +60,12 @@ class GmailService:
         parsed_emails = []
         messages = self.list_messages(max_results=max_results)
         for msg in messages:
-            full_msg = self.get_message(msg['id'])
+            msg_id = msg.get('id')
+            if not msg_id:
+                logging.warning("Skipping message without ID.")
+                continue
+
+            full_msg = self.get_message(msg_id)
             if full_msg:
                 email_data = {
                     'id': full_msg['id'],
