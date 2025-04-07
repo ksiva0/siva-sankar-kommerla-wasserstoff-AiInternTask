@@ -33,7 +33,7 @@ class GmailService:
                     "web": {
                         "client_id": st.secrets["google_oauth"]["client_id"],
                         "client_secret": st.secrets["google_oauth"]["client_secret"],
-                        "redirect_uris": [redirect_uri],
+                        "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
                         "auth_uri": st.secrets["google_oauth"].get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
                         "token_uri": st.secrets["google_oauth"].get("token_uri", "https://oauth2.googleapis.com/token")
                     }
