@@ -1,16 +1,10 @@
 # Email_Assistant/src/main.py
 
-import time
-from controllers.email_controller import process_emails
+from fastapi import FastAPI
+from services.gmail_service import GmailService
 
+app = FastAPI()
 
-def main():
-    while True:
-        print("Checking for new emails...")
-        process_emails()
-        print("Waiting 60 seconds...")
-        time.sleep(60)
-
-
-if __name__ == "__main__":
-    main()
+@app.get("/")
+def root():
+    return {"message": "Email Assistant backend is running on Vercel"}
