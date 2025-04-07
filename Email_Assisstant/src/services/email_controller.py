@@ -6,12 +6,14 @@ from services.calendar_service import CalendarService
 from utils.prompt_engineering import generate_reply_prompt, generate_summary_prompt, generate_meeting_details_prompt
 import openai
 import logging
-import streamlit as st
+import os
 
 class EmailController:
     def __init__(self, credentials):
         self.gmail_service = GmailService(credentials)
-        openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
+        openai.api_key = os.environ.get("OPENAI_API_KEY")
+        if not openai.api_key:
+            raise ValueError("OPENAI_API_KEY is not set in environment variables.")
         self.slack_service = SlackService()
         self.calendar_service = CalendarService()
         self.logger = logging.getLogger(__name__)
@@ -37,7 +39,7 @@ class EmailController:
         try:
             prompt = generate_reply_prompt(email)
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",  # Or "gpt-4"
+                model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}]
             )
             return response.choices[0].message.content
