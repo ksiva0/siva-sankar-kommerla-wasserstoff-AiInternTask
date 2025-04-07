@@ -43,24 +43,26 @@ class GmailService:
         try:
             payload = message.get('payload', {})
             parts = payload.get('parts', [])
+            body = ""
 
-            body = "" #Initialize body variable.
             if parts:
                 for part in parts:
-                    if part['mimeType'] == 'text/plain':
-                        data = part['body'].get('data')
-                        if data:
-                            body = base64.urlsafe_b64decode(data.encode('UTF-8')).decode('UTF-8')
-                            break #Get the first text/plain part.
-                    elif part['mimeType'] == 'text/html':
-                        data = part['body'].get('data')
-                        if data:
-                            body = base64.urlsafe_b64decode(data.encode('UTF-8')).decode('UTF-8')
-                            break #Get the first text/html part.
+                    mime_type = part.get('mimeType')
+                    data = part.get('body', {}).get('data')
+
+                    if mime_type == 'text/plain' and data:
+                        body = base64.urlsafe_b64decode(data.encode('UTF-8')).decode('UTF-8')
+                        break  # Get the first text/plain part
+
+                    elif mime_type == 'text/html' and data:
+                        body = base64.urlsafe_b64decode(data.encode('UTF-8')).decode('UTF-8')
+                        break  # Get the first text/html part
 
             elif payload.get('body') and payload.get('body').get('data'):
                 data = payload['body']['data']
-                if payload.get('mimeType') == 'text/plain' or payload.get('mimeType') == 'text/html':
+                mime_type = payload.get('mimeType')
+
+                if mime_type == 'text/plain' or mime_type == 'text/html':
                     body = base64.urlsafe_b64decode(data.encode('UTF-8')).decode('UTF-8')
 
             return body
@@ -72,7 +74,7 @@ class GmailService:
     def fetch_and_parse_emails(self, max_results=10):
         parsed_emails = []
         messages = self.list_messages(max_results=max_results)
-        if messages: #Added check for empty messages list
+        if messages:
             for msg in messages:
                 msg_id = msg.get('id')
                 if not msg_id:
