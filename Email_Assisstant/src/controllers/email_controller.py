@@ -1,11 +1,29 @@
-# Email_Assistant/src/controllers/email_controller.py
+from fastapi import APIRouter, HTTPException  
+from services.gmail_service import fetch_emails, reply_to_email  
+from services.slack_service import notify_slack  
 
-from fastapi import APIRouter
-from services.gmail_service import GmailService
-from utils.prompt_engineering import generate_prompt
+router = APIRouter()  
 
-router = APIRouter()
+@router.get("/emails")  
+async def get_emails():  
+    try:  
+        emails = await fetch_emails()  
+        return emails  
+    except Exception as e:  
+        raise HTTPException(status_code=500, detail=str(e))  
 
-@router.get("/emails")
-def read_emails():
-    return {"message": "Emails would be fetched here"}
+@router.post("/reply")  
+async def send_reply(email_id: str, reply_body: str):  
+    try:  
+        await reply_to_email(email_id, reply_body)  
+        return {"message": "Reply sent!"}  
+    except Exception as e:  
+        raise HTTPException(status_code=400, detail=str(e))  
+
+@router.post("/notify")  
+async def notify_slack_message(message: str):  
+    try:  
+        await notify_slack(message)  
+        return {"message": "Slack notification sent!"}  
+    except Exception as e:  
+        raise HTTPException(status_code=400, detail=str(e))  
