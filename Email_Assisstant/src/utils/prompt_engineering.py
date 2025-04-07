@@ -1,4 +1,4 @@
-# email_assistant/src/utils/prompt_engineering.py
+# Email_Assistant/src/utils/prompt_engineering.py
 
 import openai
 import os
