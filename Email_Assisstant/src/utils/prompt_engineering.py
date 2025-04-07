@@ -1,41 +1,31 @@
-# src/utils/prompt_engineering.py
+# email_assistant/src/utils/prompt_engineering.py
 
-def generate_reply_prompt(email):
-    return f"""
-    You are an AI assistant helping to draft email replies.
-    Here is the email:
+import openai
+import os
 
-    From: {email['sender']}
-    Subject: {email['subject']}
-    Body:
-    {email['body']}
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-    Please draft a polite and concise reply.
-    """
 
-def generate_summary_prompt(email):
-    return f"""
-    You are an AI assistant helping to summarize emails.
-    Here is the email:
+def analyze_email(email):
+    prompt = f"""
+You are an email assistant. Analyze the following email and decide:
+- Is it asking for info (search)?
+- Should we reply?
+- Is it requesting a meeting (schedule)?
+- Should we forward it to Slack?
 
-    From: {email['sender']}
-    Subject: {email['subject']}
-    Body:
-    {email['body']}
+Email:
+From: {email['sender']}
+Subject: {email['subject']}
+Snippet: {email['snippet']}
 
-    Please provide a concise summary of the email's main points.
-    """
-
-def generate_meeting_details_prompt(email):
-    return f"""
-    You are an AI assistant helping to extract meeting details from emails.
-    Here is the email:
-
-    From: {email['sender']}
-    Subject: {email['subject']}
-    Body:
-    {email['body']}
-
-    Please extract any meeting details, including date, time, and topic.
-    If there are no meeting details, say "No meeting details found".
-    """
+Respond with a JSON like: {{"action": "reply|slack|schedule|search", "query/event": "..."}}
+"""
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    try:
+        return eval(response["choices"][0]["message"]["content"])
+    except:
+        return {"action": "slack"}
