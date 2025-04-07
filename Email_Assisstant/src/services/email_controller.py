@@ -9,8 +9,8 @@ import logging
 import streamlit as st
 
 class EmailController:
-    def __init__(self):
-        self.gmail_service = GmailService()
+    def __init__(self, credentials):
+        self.gmail_service = GmailService(credentials)
         openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
         self.slack_service = SlackService()
         self.calendar_service = CalendarService()
