@@ -1,0 +1,11 @@
+google-api-python-client
+google-auth
+google-auth-oauthlib
+openai
+requests
+schedule
+sqlite3
+python-dotenv
+fastapi
+uvicorn
+python-multipart
