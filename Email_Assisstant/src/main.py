@@ -2,6 +2,7 @@
 
 import streamlit as st
 from services.email_controller import EmailController
+from google_auth_oauthlib.flow import Flow
 import logging
 import logging.config
 
@@ -21,8 +22,8 @@ logging_config = {
             'class': 'logging.FileHandler',
             'formatter': 'standard',
             'level': 'DEBUG',
-            'filename': 'app.log',  # Log to a file
-            'mode': 'w'  # Overwrite the log file on each run (or 'a' to append)
+            'filename': 'app.log',
+            'mode': 'w'
         }
     },
     'root': {
@@ -36,17 +37,54 @@ logger = logging.getLogger(__name__)
 def main():
     st.title("AI Email Assistant")
 
-    # Add the debugging line here:
-    logger.info(f"Redirect URI from secrets: {st.secrets['google_oauth']['redirect_uri']}") #Logging change
+    logger.info(f"Redirect URI from secrets: {st.secrets['google_oauth']['redirect_uri']}")
 
+    # --- OAuth Flow ---
+    flow = Flow.from_client_config(
+        client_config={
+            "web": {
+                "client_id": st.secrets["google_oauth"]["client_id"],
+                "client_secret": st.secrets["google_oauth"]["client_secret"],
+                "redirect_uris": [st.secrets["google_oauth"]["redirect_uri"]],
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token"
+            }
+        },
+        scopes=["https://www.googleapis.com/auth/gmail.readonly"]
+    )
+    flow.redirect_uri = st.secrets["google_oauth"]["redirect_uri"]
+
+    auth_url, _ = flow.authorization_url(prompt='consent')
+    st.markdown(f"[Click here to authorize Gmail access]({auth_url})")
+
+    authorization_response = st.text_input("Paste the full redirect URL here after authorizing:")
+
+    if authorization_response:
+        try:
+            flow.fetch_token(authorization_response=authorization_response)
+            credentials = flow.credentials
+            st.success("✅ Authorization successful!")
+            logger.info("Google OAuth authorization successful.")
+        except Exception as e:
+            st.error(f"❌ Failed to fetch token: {e}")
+            logger.error(f"OAuth fetch_token error: {e}")
+            return
+    else:
+        st.warning("👆 Please authorize Gmail and paste the full redirect URL to proceed.")
+        return
+
+    # --- Initialize email controller with credentials ---
     try:
-        email_controller = EmailController()
+        email_controller = EmailController(credentials=credentials)
     except Exception as e:
         st.error(f"Error initializing services: {e}")
         logger.error(f"Error initializing services: {e}")
         return
 
-    action = st.selectbox("Choose an action:", ["Read Emails", "Draft Reply", "Send to Slack", "Summarize Email", "Extract Meeting Details", "Send Reply"])
+    action = st.selectbox("Choose an action:", [
+        "Read Emails", "Draft Reply", "Send to Slack", 
+        "Summarize Email", "Extract Meeting Details", "Send Reply"
+    ])
 
     if action == "Read Emails":
         if st.button("Fetch and Display Emails"):
