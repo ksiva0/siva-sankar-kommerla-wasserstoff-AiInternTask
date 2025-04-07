@@ -1,8 +1,8 @@
-google-api-python-client
-google-auth
-google-auth-oauthlib
-openai
-requests
-schedule
-fastapi
-uvicorn
+google-api-python-client==2.96.0
+google-auth==2.25.2
+google-auth-oauthlib==1.0.0
+openai==1.11.0
+requests==2.31.0
+schedule==1.2.0
+fastapi==0.108.0
+uvicorn==0.24.0
