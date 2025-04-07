@@ -1,4 +1,8 @@
-# Email_Assistant/src/services/slack_service.py
+import os  
+from slack_sdk import WebClient  
 
-def send_to_slack(message):
-    print(f"[Slack] {message}")
+slack_client = WebClient(token=os.environ['SLACK_BOT_TOKEN'])  
+
+async def notify_slack(message: str):  
+    response = slack_client.chat_postMessage(channel='#general', text=message)  
+    return response  
