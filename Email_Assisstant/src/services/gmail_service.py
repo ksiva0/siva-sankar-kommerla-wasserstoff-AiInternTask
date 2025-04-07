@@ -22,15 +22,17 @@ class GmailService:
         creds = credentials
 
         if not creds:
+            # Load token from file if available
             if 'token.pickle' in os.listdir():
                 with open('token.pickle', 'rb') as token:
                     creds = pickle.load(token)
 
+            # Refresh token or get new one
             if not creds or not creds.valid:
                 if creds and creds.expired and creds.refresh_token:
                     creds.refresh(Request())
                 else:
-                    # Console-based OAuth flow suitable for Streamlit Cloud
+                    # Manual auth flow for Streamlit (console/cloud)
                     client_config = {
                         "installed": {
                             "client_id": st.secrets["google_oauth"]["client_id"],
@@ -43,23 +45,41 @@ class GmailService:
 
                     flow = InstalledAppFlow.from_client_config(
                         client_config,
-                        ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
+                        ['https://www.googleapis.com/auth/gmail.readonly',
+                         'https://www.googleapis.com/auth/gmail.send']
                     )
 
-                    st.info("Authorize the application by visiting the URL below and pasting the code.")
-                    creds = flow.run_console()
+                    # Display authorization URL
+                    auth_url, _ = flow.authorization_url(access_type='offline', include_granted_scopes='true')
+                    st.write("### 🔐 Step 1: Authorize Gmail Access")
+                    st.write(f"👉 [Click here to authorize]({auth_url}) and paste the code below.")
 
-                with open('token.pickle', 'wb') as token:
-                    pickle.dump(creds, token)
+                    # User inputs code manually
+                    code = st.text_input("Step 2: Paste the authorization code here")
 
+                    if code:
+                        try:
+                            flow.fetch_token(code=code)
+                            creds = flow.credentials
+                        except Exception as e:
+                            st.error(f"Failed to fetch token: {e}")
+                            return
+
+                # Save token for next time
+                if creds:
+                    with open('token.pickle', 'wb') as token:
+                        pickle.dump(creds, token)
+
+        # Initialize Gmail API service
         if creds:
             self.service = build('gmail', 'v1', credentials=creds)
         else:
-            self.logger.error("No credentials available for Gmail API.")
+            self.logger.error("❌ No valid credentials found for Gmail API.")
 
     def list_messages(self, user_id='me', label_ids=['INBOX'], max_results=10):
         try:
-            results = self.service.users().messages().list(userId=user_id, labelIds=label_ids, maxResults=max_results).execute()
+            results = self.service.users().messages().list(
+                userId=user_id, labelIds=label_ids, maxResults=max_results).execute()
             return results.get('messages', [])
         except Exception as e:
             self.logger.error(f"An error occurred: {e}")
@@ -68,7 +88,7 @@ class GmailService:
 
     def get_message(self, message_id, user_id='me', format='full'):
         if not self.service:
-            st.warning("Gmail service not initialized.")
+            st.warning("⚠️ Gmail service not initialized.")
             return None
         try:
             return self.service.users().messages().get(userId=user_id, id=message_id, format=format).execute()
@@ -103,7 +123,7 @@ class GmailService:
 
     def send_message(self, user_id='me', message_body='', to='', subject=''):
         if not self.service:
-            st.warning("Gmail service not initialized.")
+            st.warning("⚠️ Gmail service not initialized.")
             return
 
         try:
@@ -113,7 +133,7 @@ class GmailService:
             raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
 
             send_message = self.service.users().messages().send(userId=user_id, body={'raw': raw_message}).execute()
-            self.logger.info(f"Email sent: {send_message['id']}")
+            self.logger.info(f"✅ Email sent: {send_message['id']}")
             return send_message
         except Exception as e:
             st.error(f"An error occurred while sending message: {e}")
