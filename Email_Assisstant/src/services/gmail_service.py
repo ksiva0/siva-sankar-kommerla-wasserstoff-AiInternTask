@@ -1,3 +1,5 @@
+# Email_Assistant/src/services/gmail_service.py
+
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
@@ -59,33 +61,20 @@ class GmailService:
     def fetch_and_parse_emails(self, max_results=10):
         parsed_emails = []
         messages = self.list_messages(max_results=max_results)
-    
-        if not messages:
-            logging.info("No messages returned from Gmail API.")
-            return parsed_emails
-    
         for msg in messages:
             msg_id = msg.get('id')
             if not msg_id:
                 logging.warning("Skipping message without ID.")
                 continue
-    
+
             full_msg = self.get_message(msg_id)
-            if not full_msg:
-                logging.warning(f"Skipping message {msg_id} due to retrieval failure.")
-                continue
-    
-            try:
+            if full_msg:
                 email_data = {
                     'id': full_msg['id'],
                     'threadId': full_msg.get('threadId'),
                     'snippet': full_msg.get('snippet'),
                     'body': self.get_message_body(full_msg),
-                    'headers': full_msg.get('payload', {}).get('headers', [])
+                    'headers': full_msg['payload'].get('headers', [])
                 }
                 parsed_emails.append(email_data)
-            except Exception as e:
-                logging.error(f"Error parsing email with ID {msg_id}: {e}")
-                continue
-    
         return parsed_emails
