@@ -1,5 +1,5 @@
 {
-  "version": 2, // Correct: double quotes, no trailing comma
+  "version": 2, 
   "builds": [
     { "src": "api/**/*.py", "use": "@vercel/python" }
   ],
